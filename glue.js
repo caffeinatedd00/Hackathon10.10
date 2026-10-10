@@ -440,6 +440,20 @@
     }
     if (action === "paraphrase") {
       const paraphrase = await StickAI.simplify(text, 2);
+      if (!range || range.collapsed || range.toString().trim() !== text) {
+        throw new Error("The selected text is no longer available. Select it again and retry.");
+      }
+      const original = range.cloneContents();
+      const replacement = document.createElement("span");
+      replacement.setAttribute("data-stick-paraphrase", "");
+      replacement.append(range.extractContents());
+      range.insertNode(replacement);
+      try {
+        await globalThis.stick.perform({ action: "erase", target: replacement, text: paraphrase });
+      } catch (error) {
+        replacement.replaceWith(original);
+        throw error;
+      }
       const card = pagePrompt(host, paraphrase, [
         {
           label: "Save to Notes",
@@ -449,9 +463,17 @@
             card.remove();
           },
         },
+        {
+          label: "Undo",
+          primary: true,
+          run: () => {
+            replacement.replaceWith(original.cloneNode(true));
+            card.remove();
+          },
+        },
         { label: "Close", run: () => card.remove() },
       ]);
-      await stick("say", "Here's another way to put it.");
+      await stick("say", "Rewrote that bit. You can undo.");
     }
   }
 
