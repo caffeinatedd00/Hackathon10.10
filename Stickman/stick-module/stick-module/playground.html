@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stick Playground</title>
+<style>
+  :root { --ink:#161616; --accent:#ff5a36; --bg:#f4f1ea; --card:#fff; --muted:#6a655c; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.55 Georgia, 'Times New Roman', serif; color:var(--ink); background:var(--bg); }
+  header { padding:14px 22px; background:var(--ink); color:#fff; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  header h1 { font:700 18px/1 system-ui, sans-serif; margin:0; letter-spacing:.3px; }
+  header span { font:13px system-ui, sans-serif; color:#bbb; }
+  #status { margin-left:auto; font:12px ui-monospace, monospace; color:#9fe0a8; }
+  .wrap { display:grid; grid-template-columns: minmax(0,1fr) 400px; gap:22px; max-width:1280px; margin:0 auto; padding:22px; }
+  @media (max-width: 980px) { .wrap { grid-template-columns: 1fr; } }
+  .page, .panel { background:var(--card); border:2px solid var(--ink); border-radius:10px; padding:20px 24px; box-shadow:4px 5px 0 rgba(0,0,0,.18); }
+  .panel { font:14px/1.45 system-ui, sans-serif; align-self:start; position:sticky; top:14px; max-height:calc(100vh - 28px); overflow:auto; }
+  h2 { font:700 15px/1.2 system-ui, sans-serif; text-transform:uppercase; letter-spacing:.6px; margin:22px 0 10px; color:var(--muted); }
+  h2:first-child { margin-top:0; }
+  .article h3 { margin:0 0 6px; font:700 22px/1.2 Georgia, serif; }
+  .article p { margin:0 0 14px; }
+  #editor { min-height:92px; padding:12px 14px; border:2px dashed #aaa; border-radius:8px; background:#fffef7; outline:none; }
+  #editor:focus { border-color:var(--accent); }
+  .btns { display:flex; flex-wrap:wrap; gap:7px; }
+  button { font:600 13px system-ui, sans-serif; padding:7px 11px; border:2px solid var(--ink); background:#fff; border-radius:7px; cursor:pointer; box-shadow:2px 2px 0 var(--ink); }
+  button:hover { background:#fff3d6; } button:active { transform:translate(2px,2px); box-shadow:none; }
+  button.red { background:#ffe3dc; } button.green { background:#dff7e2; }
+  .row { display:flex; align-items:center; gap:10px; margin:7px 0; }
+  .row label { width:92px; color:var(--muted); font-size:12px; }
+  .row input[type=range] { flex:1; } .row output { width:42px; text-align:right; font:12px ui-monospace, monospace; }
+  canvas#cal { width:100%; image-rendering:pixelated; border:2px solid var(--ink); border-radius:8px; background:
+      repeating-conic-gradient(#e8e4da 0% 25%, #f7f4ec 0% 50%) 50% / 16px 16px; cursor:crosshair; display:block; }
+  textarea { width:100%; height:150px; font:12px/1.4 ui-monospace, monospace; border:2px solid var(--ink); border-radius:8px; padding:8px; }
+  .hint { color:var(--muted); font-size:12px; margin:4px 0 8px; }
+  select { font:13px system-ui; padding:5px; border:2px solid var(--ink); border-radius:6px; }
+  kbd { background:#eee; border:1px solid #bbb; border-radius:4px; padding:0 5px; font:12px ui-monospace, monospace; }
+  .tag { display:inline-block; font:700 11px system-ui; padding:2px 7px; border-radius:99px; background:#ffe3dc; border:1.5px solid var(--ink); margin-left:6px; vertical-align:middle; }
+</style>
+<script src="stick.config.js"></script>
+</head>
+<body>
+<header>
+  <h1>STICK playground</h1><span>preview every action, tune the feel, calibrate your sprites</span>
+  <div id="status">loading strips&hellip;</div>
+</header>
+
+<div class="wrap">
+  <main class="page article">
+    <h2>Reading page <span class="tag">Magnify / Erase / Highlight target</span></h2>
+    <h3>How mitochondria make energy</h3>
+    <p id="dense">The mitochondrion is a double-membrane-bound organelle in which oxidative phosphorylation couples the exergonic transfer of electrons along the respiratory chain to the endergonic synthesis of adenosine triphosphate, via a proton-motive force established across the inner membrane by chemiosmotic gradients.</p>
+    <p id="plain">Cells need a steady supply of energy to survive. Most of that energy is produced in small compartments called mitochondria, and the details of how they do it have been studied for more than a century.</p>
+
+    <h2>Type here <span class="tag">Typo punch target</span></h2>
+    <div id="editor" contenteditable="true" spellcheck="false">I definately want to recieve teh report, but the adress is wierd and it occured untill tommorow.</div>
+    <p class="hint">Type your own typos (from the list: recieve, teh, definately, seperate, wierd, adress, occured, untill, tommorow, accomodate). Tick &ldquo;auto-punch&rdquo; to see the live-typing flow Dev B will wire up.</p>
+    <label class="hint"><input type="checkbox" id="auto"> auto-punch typos while I type (700&nbsp;ms after you stop)</label>
+
+    <h2>Actions <span class="tag">stick.perform({...})</span></h2>
+    <div class="btns" id="btns"></div>
+
+    <h2>Filler (scroll test)</h2>
+    <p>Stick scrolls the target into view before acting, so try the buttons after scrolling this page. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+    <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+    <p style="height:260px"></p>
+    <p id="bottom">The very bottom of the page. Magnify this paragraph to test scrolling and positioning near the screen edge.</p>
+  </main>
+
+  <aside class="panel">
+    <h2>Feel</h2>
+    <div class="row"><label>speed</label><input type="range" id="spd" min="0.5" max="4" step="0.25" value="1"><output id="spdo">1</output></div>
+    <div class="row"><label>walk px/s</label><input type="range" id="ws" min="60" max="400" step="10" value="150"><output id="wso">150</output></div>
+    <div class="row"><label>run px/s</label><input type="range" id="rs" min="200" max="900" step="10" value="430"><output id="rso">430</output></div>
+    <div class="row"><label>scale</label>
+      <select id="scale"><option value="0">auto</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+    <div class="row"><label>faces</label>
+      <select id="faces"><option value="1">right in the PNG</option><option value="0">left in the PNG</option></select></div>
+    <p class="hint">Walk feel: raise/lower <b>walk px/s</b> until the feet stop sliding, then copy the number into <code>stick.config.js</code>.</p>
+
+    <h2>Calibrator</h2>
+    <p class="hint">1) pick a strip &nbsp;2) scrub to the frame where the fist lands &nbsp;3) choose what to set, then click the image. Copy the result into <code>stick.config.js</code>.</p>
+    <div class="row"><label>strip</label><select id="cs"></select></div>
+    <div class="row"><label>frame</label><input type="range" id="cf" min="0" max="0" value="0"><output id="cfo">0</output></div>
+    <div class="btns" style="margin-bottom:8px">
+      <button id="cplay">&#9654; play</button>
+      <button id="setImpact">set impact = this frame</button>
+    </div>
+    <div class="row"><label>click sets</label>
+      <select id="cmode"><option value="anchor">feet (anchor)</option><option value="hit">fist / focus point</option></select></div>
+    <canvas id="cal" width="10" height="10"></canvas>
+    <p class="hint" id="calinfo">&nbsp;</p>
+    <textarea id="out" readonly placeholder="Calibration output appears here"></textarea>
+    <div class="btns" style="margin-top:8px"><button id="copy">copy to clipboard</button></div>
+  </aside>
+</div>
+
+<script src="stick.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var FIX = { recieve:'receive', teh:'the', definately:'definitely', seperate:'separate', wierd:'weird', adress:'address', occured:'occurred', untill:'until', tommorow:'tomorrow', accomodate:'accommodate' };
+  var EDITOR_DEFAULT = $('editor').innerHTML;
+  var DENSE_DEFAULT = $('dense').textContent;
+
+  // ---------- typo finder (Dev B will use nspell; this tiny map keeps the playground offline) ----------
+  function findTypos(root) {
+    var out = [], re = new RegExp('\\b(' + Object.keys(FIX).join('|') + ')\\b', 'gi');
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), n;
+    while ((n = w.nextNode())) {
+      var m; re.lastIndex = 0;
+      while ((m = re.exec(n.nodeValue))) {
+        var r = document.createRange(); r.setStart(n, m.index); r.setEnd(n, m.index + m[0].length);
+        var fix = FIX[m[0].toLowerCase()]; if (m[0][0] === m[0][0].toUpperCase()) fix = fix[0].toUpperCase() + fix.slice(1);
+        out.push({ range: r, word: m[0], fix: fix });
+      }
+    }
+    return out;
+  }
+  async function fixAll() {
+    var guard = 0, t;
+    while ((t = findTypos($('editor'))[0]) && guard++ < 12) await stick.perform({ action: 'punch', target: t.range, text: t.fix });
+  }
+
+  // ---------- action buttons ----------
+  var P = function (cmd) { return function () { return stick.perform(cmd).then(function (r) { log(cmd.action, r); }, function (e) { log(cmd.action + ' FAILED: ' + e.message); }); }; };
+  var BTN = [
+    ['idle (go home)', P({ action: 'idle' })],
+    ['walk to paragraph', P({ action: 'walk', target: '#plain' })],
+    ['run to paragraph', P({ action: 'run', target: '#plain' })],
+    ['punch next typo (burn)', function () { var t = findTypos($('editor'))[0]; if (!t) return log('no typos left: click reset'); return stick.perform({ action: 'punch', target: t.range }); }, 'red'],
+    ['punch + correct next typo', function () { var t = findTypos($('editor'))[0]; if (!t) return log('no typos left: click reset'); return stick.perform({ action: 'punch', target: t.range, text: t.fix }); }, 'red'],
+    ['fix ALL typos', fixAll, 'red'],
+    ['correct (insert word)', function () { var e = $('editor'); var r = document.createRange(); r.selectNodeContents(e); r.collapse(false); return stick.perform({ action: 'correct', target: r, text: ' Thanks!' }); }, 'green'],
+    ['magnify dense paragraph', P({ action: 'magnify', target: '#dense' })],
+    ['erase + simplify', function () { return stick.perform({ action: 'erase', target: '#dense', text: 'Mitochondria are tiny power stations inside cells. They use food and oxygen to make ATP, the fuel your cells run on.' }); }],
+    ['restore original', function () { stick.restore('#dense'); }],
+    ['highlight paragraph', P({ action: 'highlight', target: '#plain' })],
+    ['tap (drift nudge)', P({ action: 'tap', text: 'Back to work?' })],
+    ['read (flow)', P({ action: 'read' })],
+    ['sleep', P({ action: 'sleep' })],
+    ['wake / stand', P({ action: 'idle' })],
+    ['carry definition note', P({ action: 'carry', target: '#dense', text: 'Organelle: a tiny working part inside a cell.' })],
+    ['carry copy to tray', P({ action: 'carry', text: 'Copied: oxidative phosphorylation' })],
+    ['say hi', P({ action: 'say', text: 'Hello. I am Stick.' })],
+    ['cheer', P({ action: 'cheer', text: 'Nice.' })],
+    ['stop everything', function () { stick.stop(); }],
+    ['reset demo', function () { $('editor').innerHTML = EDITOR_DEFAULT; $('dense').textContent = DENSE_DEFAULT; }]
+  ];
+  BTN.forEach(function (b) { var el = document.createElement('button'); el.textContent = b[0]; if (b[2]) el.className = b[2]; el.onclick = b[1]; $('btns').appendChild(el); });
+  function log(a, r) { $('status').textContent = a + (r && r.cancelled ? ' (cancelled)' : ' ✓'); console.log('[stick]', a, r); }
+
+  // ---------- live typing flow (the pattern for Dev B) ----------
+  var typingTimer = null;
+  $('editor').addEventListener('input', function () {
+    if (!$('auto').checked) return;
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(function () { if (!stick.busy) { var t = findTypos($('editor'))[0]; if (t) stick.perform({ action: 'punch', target: t.range, text: t.fix }); } }, 700);
+  });
+
+  // ---------- feel controls ----------
+  function bind(id, fn) { $(id).addEventListener('input', function () { $(id + 'o') && ($(id + 'o').textContent = this.value); fn(+this.value); }); }
+  bind('spd', function (v) { stick.setSpeed(v); });
+  bind('ws', function (v) { stick.config.walkSpeed = v; });
+  bind('rs', function (v) { stick.config.runSpeed = v; });
+  $('scale').addEventListener('change', function () { var v = +this.value; v ? stick.setScale(v) : location.reload(); });
+  $('faces').addEventListener('change', function () { stick.config.facesRight = this.value === '1'; });
+
+  // ---------- calibrator ----------
+  var cal = { name: null, idx: 0, playing: false, out: {}, t0: 0 };
+  var cv = $('cal'), cx = cv.getContext('2d');
+  function strip() { return stick.strips[cal.name]; }
+  function drawCal() {
+    var S = strip(); if (!S || S.missing) return;
+    var z = Math.max(1, Math.floor(380 / S.fw)); if (z < 1) z = 1;
+    cv.width = S.fw * z; cv.height = S.fh * z; cv.style.width = Math.min(cv.width, 380) + 'px'; cv.style.height = 'auto';
+    cx.imageSmoothingEnabled = false; cx.clearRect(0, 0, cv.width, cv.height);
+    cx.drawImage(S.img, cal.idx * S.fw, 0, S.fw, S.fh, 0, 0, cv.width, cv.height);
+    var rec = cal.out[cal.name] || {}, a = rec.anchor || S.anchor, h = rec.hit || S.hit || S.focus;
+    function cross(p, col, label) { if (!p) return; var x = p.x * cv.width, y = p.y * cv.height; cx.strokeStyle = col; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(x - 10, y); cx.lineTo(x + 10, y); cx.moveTo(x, y - 10); cx.lineTo(x, y + 10); cx.stroke(); cx.fillStyle = col; cx.font = '700 12px system-ui'; cx.fillText(label, x + 8, y - 6); }
+    cross(a, '#1c7ed6', 'feet'); cross(h, '#e03131', 'fist');
+    var imp = rec.impact != null ? rec.impact : S.impact;
+    $('cfo').textContent = cal.idx + '/' + (S.frames - 1);
+    $('calinfo').innerHTML = S.name + ': ' + S.frames + ' frames, ' + S.fw + '×' + S.fh + ' px each' + (S.usedFallback ? ' <b>(placeholder art)</b>' : '') + ' &middot; impact frame: <b>' + imp + '</b>' + (cal.idx === imp ? ' &larr; here' : '');
+  }
+  function emit() {
+    var o = {}; Object.keys(cal.out).forEach(function (k) {
+      var r = cal.out[k], e = {}; if (r.impact != null) e.impact = r.impact;
+      if (r.hit) { var key = (strip_def(k).focus && !strip_def(k).hit) ? 'focus' : 'hit'; e[key] = { x: +r.hit.x.toFixed(3), y: +r.hit.y.toFixed(3) }; }
+      if (r.anchor) e.anchor = { x: +r.anchor.x.toFixed(3), y: +r.anchor.y.toFixed(3) };
+      o[k] = e;
+    });
+    $('out').value = Object.keys(o).length ? '// merge these into the matching entries in stick.config.js -> strips\n' + JSON.stringify(o, null, 2) : '';
+  }
+  function strip_def(k) { return (stick.strips[k] && stick.strips[k].def) || {}; }
+  function pickStrip(name) {
+    cal.name = name; cal.idx = 0; var S = strip(); $('cf').max = Math.max(0, S.frames - 1); $('cf').value = 0; drawCal();
+  }
+  cv.addEventListener('click', function (e) {
+    var S = strip(); if (!S) return; var r = cv.getBoundingClientRect();
+    var p = { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
+    var rec = cal.out[cal.name] = cal.out[cal.name] || {};
+    rec[$('cmode').value] = p;
+    if ($('cmode').value === 'anchor') { S.anchor = p; }
+    else { if (S.def.focus && !S.def.hit) S.focus = p; else S.hit = p; }
+    drawCal(); emit();
+  });
+  $('cf').addEventListener('input', function () { cal.idx = +this.value; drawCal(); });
+  $('cs').addEventListener('change', function () { pickStrip(this.value); });
+  $('setImpact').onclick = function () { var rec = cal.out[cal.name] = cal.out[cal.name] || {}; rec.impact = cal.idx; strip().impact = cal.idx; drawCal(); emit(); };
+  $('cplay').onclick = function () {
+    cal.playing = !cal.playing; this.innerHTML = cal.playing ? '&#10073;&#10073; pause' : '&#9654; play';
+    if (cal.playing) (function tick() { if (!cal.playing) return; var S = strip(); cal.idx = (cal.idx + 1) % S.frames; $('cf').value = cal.idx; drawCal(); setTimeout(tick, 1000 / S.fps); })();
+  };
+  $('copy').onclick = function () { $('out').select(); document.execCommand('copy'); log('copied config'); };
+
+  stick.ready.then(function () {
+    var names = Object.keys(stick.strips).filter(function (k) { return !stick.strips[k].missing; });
+    names.forEach(function (n) { var o = document.createElement('option'); o.value = n; o.textContent = n + ' (' + stick.strips[n].frames + ')'; $('cs').appendChild(o); });
+    var first = names.indexOf('jabFire') >= 0 ? 'jabFire' : names[0];
+    $('cs').value = first; pickStrip(first);
+    $('scale').value = String(stick.config.scale || 0);
+    var fb = names.filter(function (n) { return stick.strips[n].usedFallback; });
+    $('status').textContent = fb.length ? 'ready · placeholder art for ' + fb.length + ' strip(s): drop your PNGs in assets/' : 'ready · using your sprites (scale x' + stick.scale + ')';
+  });
+})();
+</script>
+</body>
+</html>

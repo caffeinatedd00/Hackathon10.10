@@ -1,0 +1,2 @@
+Copy everything from your Custom/ sprite folder into THIS folder (keep the file names, e.g. idle_strip8.png).
+Until a file exists here, the module uses the stand-in art in ../assets-placeholder/ for that strip.
