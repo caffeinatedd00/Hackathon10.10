@@ -1,0 +1,15 @@
+{
+    "manifest_version": 3,
+    "name": "Background AI",
+    "version": "1.0",
+    "permissions": ["activeTab", "scripting"],
+    "host_permissions": ["https://generativelanguage.googleapis.com/*"],
+    "background": { "service_worker": "background.js" },
+    "commands": {
+      "run-ai": {
+        "suggested_key": { "default": "Ctrl+Shift+Y" },
+        "description": "Run the AI on selected text"
+      }
+    }
+}
+//DELETE

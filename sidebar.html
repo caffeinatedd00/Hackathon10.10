@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>STICK</title>
+  <link rel="stylesheet" href="sidebar.css">
+</head>
+<body>
+  <header class="top">
+    <svg class="mini" viewBox="0 0 100 130" aria-hidden="true">
+      <circle cx="50" cy="20" r="10"/>
+      <path class="limb" d="M50 30V75M50 40L34 62M50 40L66 62M50 75L38 110M50 75L62 110"/>
+    </svg>
+    <div class="title">
+      <h1>STICK</h1>
+      <p id="task">No task detected yet</p>
+    </div>
+    <span id="focus" class="chip" data-focus="idle">Idle</span>
+  </header>
+
+  <nav class="seg" role="tablist">
+    <button role="tab" aria-selected="true" data-view="groups">Groups <span id="count-groups" class="badge">0</span></button>
+    <button role="tab" aria-selected="false" data-view="summaries">Summaries <span id="count-summaries" class="badge">0</span></button>
+    <button role="tab" aria-selected="false" data-view="notes">Notes <span id="count-notes" class="badge">0</span></button>
+  </nav>
+
+  <main>
+    <section id="view-groups" class="view"></section>
+    <section id="view-summaries" class="view" hidden></section>
+    <section id="view-notes" class="view" hidden></section>
+  </main>
+
+  <footer id="dev" hidden>
+    <span>Dev</span>
+    <button id="dev-regroup">Regroup</button>
+    <button id="dev-summary">+ Summary</button>
+    <button id="dev-note">+ Note</button>
+    <button id="dev-focus">Focus ▸</button>
+  </footer>
+
+  <script src="sidebar.js"></script>
+</body>
+</html>

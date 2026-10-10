@@ -1,0 +1,157 @@
+const api = typeof browser !== "undefined" ? browser : chrome;
+const MOCK = true; // set to false once the background script sends real messages
+
+const $ = (s) => document.querySelector(s);
+const state = { task: null, focus: "idle", reading: "ok", groups: [], summaries: [], notes: [] };
+const collapsed = new Set();
+
+/* ---------- helpers (textContent only, so AI output can never inject HTML) ---------- */
+function h(tag, props = {}, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") el.className = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (v != null && v !== false) el.setAttribute(k, v);
+  }
+  el.append(...kids.flat().filter((x) => x != null && x !== false));
+  return el;
+}
+const host = (url) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return ""; } };
+const ago = (ts) => {
+  const m = Math.round((Date.now() - ts) / 60000);
+  return m < 1 ? "just now" : m < 60 ? `${m}m ago` : `${Math.round(m / 60)}h ago`;
+};
+const empty = (title, hint) => h("div", { class: "empty" }, h("strong", {}, title), h("span", {}, hint));
+
+/* ---------- rendering ---------- */
+const FOCUS = { idle: "Idle", flow: "In flow", drift: "Drifting", stuck: "Stuck" };
+
+function renderHeader() {
+  const confused = state.reading === "confused";
+  const f = confused ? "stuck" : state.focus;
+  const chip = $("#focus");
+  chip.dataset.focus = f;
+  chip.textContent = confused ? "Confused" : FOCUS[f] ?? "Idle";
+  $("#task").textContent = state.task || "No task detected yet";
+}
+
+function tabRow(t) {
+  const fav = t.favIconUrl
+    ? h("img", { class: "fav", src: t.favIconUrl, alt: "" })
+    : h("span", { class: "fav letter" }, (t.title || "?")[0].toUpperCase());
+  return h("button", { class: "tab-row" + (t.sleeping ? " sleeping" : ""), title: t.url || "", onclick: () => activate(t) },
+    fav,
+    h("span", { class: "ttl" }, t.title || t.url),
+    t.sleeping ? h("span", { class: "zzz" }, "zzz") : h("span", { class: "host" }, host(t.url)));
+}
+
+function groupCard(g) {
+  const asleep = g.tabs.filter((t) => t.sleeping).length;
+  const el = h("details", { class: "group" },
+    h("summary", {},
+      h("span", { class: "dot" }),
+      h("span", { class: "gname" }, g.name),
+      h("span", { class: "meta" }, `${g.tabs.length} tabs` + (asleep ? ` · ${asleep} asleep` : ""))),
+    h("div", { class: "tabs-list" }, g.tabs.map(tabRow)));
+  el.style.setProperty("--c", `var(--${g.color || "grey"})`);
+  el.open = !collapsed.has(g.id);
+  el.addEventListener("toggle", () => (el.open ? collapsed.delete(g.id) : collapsed.add(g.id)));
+  return el;
+}
+
+function renderGroups() {
+  const box = $("#view-groups");
+  box.replaceChildren();
+  if (!state.groups.length) box.append(empty("No groups yet", "Stick will sort your tabs by task as you browse."));
+  state.groups.forEach((g) => box.append(groupCard(g)));
+  $("#count-groups").textContent = state.groups.length;
+}
+
+function renderSummaries() {
+  const box = $("#view-summaries");
+  box.replaceChildren();
+  if (!state.summaries.length) box.append(empty("No summaries yet", "Skim a long page and Stick will summarise it here."));
+  state.summaries.forEach((s) => box.append(h("article", { class: "card" },
+    h("h3", {}, s.title),
+    h("p", { class: "src" }, `${host(s.url)} · ${ago(s.ts)}`),
+    h("p", {}, s.text),
+    h("button", { class: "ghost", onclick: () => navigator.clipboard.writeText(s.text) }, "Copy"))));
+  $("#count-summaries").textContent = state.summaries.length;
+}
+
+function renderNotes() {
+  const box = $("#view-notes");
+  box.replaceChildren();
+  if (!state.notes.length) box.append(empty("No notes yet", "Passages you re-read will be saved here automatically."));
+  state.notes.forEach((n) => box.append(h("article", { class: "card" },
+    h("blockquote", {}, n.text),
+    h("p", { class: "src" }, `${n.title} · ${ago(n.ts)}`),
+    h("button", { class: "ghost", onclick: () => navigator.clipboard.writeText(n.text) }, "Copy"))));
+  $("#count-notes").textContent = state.notes.length;
+}
+
+/* ---------- incoming messages (the contract with the backend) ---------- */
+function handle(msg) {
+  if (!msg) return;
+  if (msg.type === "groups") { state.groups = msg.groups; renderGroups(); }
+  else if (msg.type === "summary") { state.summaries.unshift(msg.item); renderSummaries(); }
+  else if (msg.type === "note") { state.notes.unshift(msg.item); renderNotes(); }
+  else if (msg.task !== undefined || msg.focus || msg.reading) {
+    Object.assign(state, { task: msg.task ?? state.task, focus: msg.focus ?? state.focus, reading: msg.reading ?? state.reading });
+    renderHeader();
+  }
+}
+api.runtime.onMessage.addListener(handle);
+
+function activate(t) { if (!MOCK) api.tabs.update(t.id, { active: true }); }
+
+/* ---------- view switching ---------- */
+document.querySelectorAll(".seg button").forEach((b) =>
+  b.addEventListener("click", () => {
+    document.querySelectorAll(".seg button").forEach((x) => x.setAttribute("aria-selected", x === b));
+    document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== "view-" + b.dataset.view));
+  }));
+
+/* ---------- mock data (dev only) ---------- */
+function demoGroups() {
+  const tab = (id, title, url, sleeping = false) => ({ id, title, url, sleeping });
+  const groups = [
+    { id: 1, name: "Neural networks revision", color: "blue", tabs: [
+      tab(1, "Backpropagation explained", "https://example.edu/backprop"),
+      tab(2, "Lecture 7: Optimisation", "https://moodle.qmul.ac.uk/lecture7"),
+      tab(3, "Attention Is All You Need", "https://arxiv.org/abs/1706.03762") ] },
+    { id: 2, name: "Essay research", color: "purple", tabs: [
+      tab(4, "Ethics of AI: a survey", "https://journals.example.org/ethics"),
+      tab(5, "Google Scholar", "https://scholar.google.com") ] },
+    { id: 3, name: "Off-task", color: "orange", tabs: [
+      tab(6, "Funniest cat videos", "https://www.youtube.com/watch?v=1", true),
+      tab(7, "Football scores", "https://www.bbc.co.uk/sport", true) ] },
+  ];
+  const all = groups.flatMap((g) => g.tabs);
+  const t = all[Math.floor(Math.random() * all.length)];
+  t.sleeping = !t.sleeping;
+  return groups;
+}
+const SUMMARIES = [
+  ["Attention Is All You Need", "https://arxiv.org/abs/1706.03762", "Introduces the Transformer, which replaces recurrence with self-attention so sequences can be processed in parallel."],
+  ["Ethics of AI: a survey", "https://journals.example.org/ethics", "Reviews fairness, accountability and transparency, and argues that governance needs to keep pace with deployment."],
+];
+const NOTES = [
+  ["Attention Is All You Need", "Self-attention relates every position in a sequence to every other position."],
+  ["Lecture 7: Optimisation", "Adam combines momentum with per-parameter learning rates."],
+];
+const FOCUSES = ["flow", "drift", "stuck", "idle"];
+let si = 0, ni = 0, fi = 0;
+
+if (MOCK) {
+  $("#dev").hidden = false;
+  $("#dev-regroup").onclick = () => handle({ type: "groups", groups: demoGroups() });
+  $("#dev-summary").onclick = () => { const [title, url, text] = SUMMARIES[si++ % SUMMARIES.length]; handle({ type: "summary", item: { title, url, text, ts: Date.now() } }); };
+  $("#dev-note").onclick = () => { const [title, text] = NOTES[ni++ % NOTES.length]; handle({ type: "note", item: { title, text, ts: Date.now() } }); };
+  $("#dev-focus").onclick = () => { const f = FOCUSES[fi++ % FOCUSES.length]; handle({ focus: f, reading: f === "stuck" ? "confused" : "ok" }); };
+
+  handle({ task: "Revising: neural networks", focus: "flow", reading: "ok" });
+  $("#dev-regroup").click(); $("#dev-summary").click(); $("#dev-note").click();
+}
+
+renderHeader(); renderGroups(); renderSummaries(); renderNotes();
