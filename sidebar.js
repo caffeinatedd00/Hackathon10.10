@@ -223,7 +223,15 @@ document.querySelectorAll(".seg button").forEach((b) =>
 (async function init() {
   const hadSaved = await load();
   api.runtime.onMessage.addListener(handle);
-
+    api.storage.onChanged.addListener((changes, area) => {
+    const v = area === "local" && changes.stickSidebar?.newValue;
+    if (!v) return;
+    if (JSON.stringify([v.summaries, v.notes]) === JSON.stringify([state.summaries, state.notes])) return;
+    state.summaries = v.summaries || [];
+    state.notes = v.notes || [];
+    renderSummaries();
+    renderNotes();
+  });
   if (MOCK) {
     const dev = $("#dev");
     dev.hidden = false;
