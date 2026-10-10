@@ -4,6 +4,9 @@ const MOCK = true; // set to false once the background script sends real message
 const $ = (s) => document.querySelector(s);
 const state = { task: null, focus: "idle", reading: "ok", groups: [], summaries: [], notes: [] };
 const collapsed = new Set();
+let editing = null;     // { id, draft } while a note is being edited
+let lastDeleted = null; // { kind, item, index } for Undo
+let toastTimer;
 
 /* ---------- helpers (textContent only, so AI output can never inject HTML) ---------- */
 function h(tag, props = {}, ...kids) {
@@ -22,6 +25,70 @@ const ago = (ts) => {
   return m < 1 ? "just now" : m < 60 ? `${m}m ago` : `${Math.round(m / 60)}h ago`;
 };
 const empty = (title, hint) => h("div", { class: "empty" }, h("strong", {}, title), h("span", {}, hint));
+const uid = () => crypto.randomUUID();
+const autosize = (el) => { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; };
+
+function copyBtn(text) {
+  const b = h("button", { class: "ghost" }, "Copy");
+  b.onclick = () => {
+    navigator.clipboard.writeText(text);
+    b.textContent = "Copied";
+    setTimeout(() => (b.textContent = "Copy"), 1200);
+  };
+  return b;
+}
+
+/* ---------- persistence (notes and summaries survive closing the sidebar) ---------- */
+let saveTimer;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    api.storage.local.set({ stickSidebar: { summaries: state.summaries, notes: state.notes } }).catch(() => {});
+  }, 200);
+}
+async function load() {
+  try {
+    const { stickSidebar } = await api.storage.local.get("stickSidebar");
+    if (!stickSidebar) return false;
+    state.summaries = stickSidebar.summaries || [];
+    state.notes = stickSidebar.notes || [];
+    return true;
+  } catch { return false; }
+}
+
+/* ---------- delete + undo ---------- */
+const renderList = (kind) => (kind === "notes" ? renderNotes() : renderSummaries());
+
+function remove(kind, id) {
+  const index = state[kind].findIndex((x) => x.id === id);
+  if (index < 0) return;
+  const [item] = state[kind].splice(index, 1);
+  lastDeleted = { kind, item, index };
+  if (editing?.id === id) editing = null;
+  renderList(kind);
+  save();
+  toast(kind === "notes" ? "Note deleted" : "Summary deleted");
+}
+
+function undo() {
+  if (!lastDeleted) return;
+  const { kind, item, index } = lastDeleted;
+  state[kind].splice(Math.min(index, state[kind].length), 0, item);
+  lastDeleted = null;
+  renderList(kind);
+  save();
+  hideToast();
+}
+
+const toastEl = h("div", { id: "toast", hidden: "" });
+document.body.append(toastEl);
+function toast(msg) {
+  toastEl.replaceChildren(h("span", {}, msg), h("button", { onclick: undo }, "Undo"));
+  toastEl.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toastEl.hidden = true; lastDeleted = null; }, 6000);
+}
+function hideToast() { clearTimeout(toastTimer); toastEl.hidden = true; }
 
 /* ---------- rendering ---------- */
 const FOCUS = { idle: "Idle", flow: "In flow", drift: "Drifting", stuck: "Stuck" };
@@ -75,18 +142,59 @@ function renderSummaries() {
     h("h3", {}, s.title),
     h("p", { class: "src" }, `${host(s.url)} · ${ago(s.ts)}`),
     h("p", {}, s.text),
-    h("button", { class: "ghost", onclick: () => navigator.clipboard.writeText(s.text) }, "Copy"))));
+    h("div", { class: "actions" },
+      copyBtn(s.text),
+      h("button", { class: "ghost danger", onclick: () => remove("summaries", s.id) }, "Delete")))));
   $("#count-summaries").textContent = state.summaries.length;
+}
+
+function noteCard(n) {
+  const meta = `${n.title} · ${ago(n.ts)}` + (n.edited ? " · edited" : "");
+
+  if (editing?.id !== n.id) {
+    return h("article", { class: "card" },
+      h("blockquote", {}, n.text),
+      h("p", { class: "src" }, meta),
+      h("div", { class: "actions" },
+        h("button", { class: "ghost", onclick: () => { editing = { id: n.id, draft: n.text }; renderNotes(); } }, "Edit"),
+        copyBtn(n.text),
+        h("button", { class: "ghost danger", onclick: () => remove("notes", n.id) }, "Delete")));
+  }
+
+  // edit mode
+  const area = h("textarea", { class: "editor", rows: 3, "aria-label": "Edit note" });
+  area.value = editing.draft;
+  const saveBtn = h("button", { class: "ghost primary" }, "Save");
+  const commit = () => {
+    const text = area.value.trim();
+    if (!text) return;
+    if (text !== n.text) { n.text = text; n.edited = true; save(); }
+    editing = null;
+    renderNotes();
+  };
+  const cancel = () => { editing = null; renderNotes(); };
+  saveBtn.onclick = commit;
+  area.addEventListener("input", () => { editing.draft = area.value; saveBtn.disabled = !area.value.trim(); autosize(area); });
+  area.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") cancel();
+    else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) commit();
+  });
+  setTimeout(() => { autosize(area); area.focus(); area.setSelectionRange(area.value.length, area.value.length); }, 0);
+
+  return h("article", { class: "card editing" },
+    area,
+    h("p", { class: "src" }, meta),
+    h("div", { class: "actions" },
+      saveBtn,
+      h("button", { class: "ghost", onclick: cancel }, "Cancel"),
+      h("span", { class: "hint" }, "Ctrl+Enter to save")));
 }
 
 function renderNotes() {
   const box = $("#view-notes");
   box.replaceChildren();
   if (!state.notes.length) box.append(empty("No notes yet", "Passages you re-read will be saved here automatically."));
-  state.notes.forEach((n) => box.append(h("article", { class: "card" },
-    h("blockquote", {}, n.text),
-    h("p", { class: "src" }, `${n.title} · ${ago(n.ts)}`),
-    h("button", { class: "ghost", onclick: () => navigator.clipboard.writeText(n.text) }, "Copy"))));
+  state.notes.forEach((n) => box.append(noteCard(n)));
   $("#count-notes").textContent = state.notes.length;
 }
 
@@ -94,14 +202,13 @@ function renderNotes() {
 function handle(msg) {
   if (!msg) return;
   if (msg.type === "groups") { state.groups = msg.groups; renderGroups(); }
-  else if (msg.type === "summary") { state.summaries.unshift(msg.item); renderSummaries(); }
-  else if (msg.type === "note") { state.notes.unshift(msg.item); renderNotes(); }
+  else if (msg.type === "summary") { state.summaries.unshift({ id: uid(), ...msg.item }); renderSummaries(); save(); }
+  else if (msg.type === "note") { state.notes.unshift({ id: uid(), ...msg.item }); renderNotes(); save(); }
   else if (msg.task !== undefined || msg.focus || msg.reading) {
     Object.assign(state, { task: msg.task ?? state.task, focus: msg.focus ?? state.focus, reading: msg.reading ?? state.reading });
     renderHeader();
   }
 }
-api.runtime.onMessage.addListener(handle);
 
 function activate(t) { if (!MOCK) api.tabs.update(t.id, { active: true }); }
 
@@ -143,15 +250,24 @@ const NOTES = [
 const FOCUSES = ["flow", "drift", "stuck", "idle"];
 let si = 0, ni = 0, fi = 0;
 
-if (MOCK) {
-  $("#dev").hidden = false;
-  $("#dev-regroup").onclick = () => handle({ type: "groups", groups: demoGroups() });
-  $("#dev-summary").onclick = () => { const [title, url, text] = SUMMARIES[si++ % SUMMARIES.length]; handle({ type: "summary", item: { title, url, text, ts: Date.now() } }); };
-  $("#dev-note").onclick = () => { const [title, text] = NOTES[ni++ % NOTES.length]; handle({ type: "note", item: { title, text, ts: Date.now() } }); };
-  $("#dev-focus").onclick = () => { const f = FOCUSES[fi++ % FOCUSES.length]; handle({ focus: f, reading: f === "stuck" ? "confused" : "ok" }); };
+/* ---------- start ---------- */
+(async function init() {
+  const hadSaved = await load();
+  api.runtime.onMessage.addListener(handle);
 
-  handle({ task: "Revising: neural networks", focus: "flow", reading: "ok" });
-  $("#dev-regroup").click(); $("#dev-summary").click(); $("#dev-note").click();
-}
+  if (MOCK) {
+    const dev = $("#dev");
+    dev.hidden = false;
+    $("#dev-regroup").onclick = () => handle({ type: "groups", groups: demoGroups() });
+    $("#dev-summary").onclick = () => { const [title, url, text] = SUMMARIES[si++ % SUMMARIES.length]; handle({ type: "summary", item: { title, url, text, ts: Date.now() } }); };
+    $("#dev-note").onclick = () => { const [title, text] = NOTES[ni++ % NOTES.length]; handle({ type: "note", item: { title, text, ts: Date.now() } }); };
+    $("#dev-focus").onclick = () => { const f = FOCUSES[fi++ % FOCUSES.length]; handle({ focus: f, reading: f === "stuck" ? "confused" : "ok" }); };
+    dev.append(h("button", { onclick: async () => { await api.storage.local.remove("stickSidebar"); location.reload(); } }, "Reset"));
 
-renderHeader(); renderGroups(); renderSummaries(); renderNotes();
+    handle({ task: "Revising: neural networks", focus: "flow", reading: "ok" });
+    $("#dev-regroup").click();
+    if (!hadSaved) { $("#dev-summary").click(); $("#dev-note").click(); } // seed demo items only on the first run
+  }
+
+  renderHeader(); renderGroups(); renderSummaries(); renderNotes();
+})();
