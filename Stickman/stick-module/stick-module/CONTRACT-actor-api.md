@@ -13,10 +13,11 @@ await stick.perform({ action, target, text, opts })   // -> Promise, resolves wh
 | `magnify` | crouches, lens scans the paragraph | Element | none |
 | `tap` | taunt strip + ripples (drift nudge) | optional | optional bubble |
 | `sleep` | lies down (pratfall), Zzz | none | none |
-| extras | `erase` (scribble + rewrite, `text` = new text), `highlight`, `carry` (note beside target, or copy to tray if no target), `read`, `wave`, `cheer`, `shrug`, `say` | | |
+| extras | `erase` (scribble + rewrite, `text` = new text), `highlight`, `carry` (note beside target, or copy to tray if no target), `read` (optional target; sits beside it, or reads at home), `wave`, `cheer`, `shrug`, `say` | varies | varies |
 
 * `target` can be an Element, a Range, a CSS selector string, or `{x, y, width?, height?}` in viewport px.
 * Calls are queued: `perform` never overlaps animations. `stick.stop()` cancels everything and goes home.
 * `stick.busy` is true while anything is queued/running (use it to avoid piling up requests).
 * `stick.restore(el)` puts back the original text after an `erase` rewrite ("show original" button).
 * Over extension messages `target` must be a selector string or {x,y,...} (Elements cannot be serialised).
+* `walk`, `run`, `magnify`, and `highlight` need a target. `punch` and `correct` need a word/Range; `erase` needs an Element. `idle`, `sleep`, and `say` do not need a target.

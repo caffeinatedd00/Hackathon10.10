@@ -79,7 +79,7 @@
     <p class="hint">Walk feel: raise/lower <b>walk px/s</b> until the feet stop sliding, then copy the number into <code>stick.config.js</code>.</p>
 
     <h2>Calibrator</h2>
-    <p class="hint">1) pick a strip &nbsp;2) scrub to the frame where the fist lands &nbsp;3) choose what to set, then click the image. Copy the result into <code>stick.config.js</code>.</p>
+    <p class="hint">For jabFire, the preview combines the jab with its fire overlay. Scrub to contact, set that impact frame, then choose fist or feet and click that point. The copied JSON must be pasted into <code>stick.config.js</code>; calibration does not save it automatically.</p>
     <div class="row"><label>strip</label><select id="cs"></select></div>
     <div class="row"><label>frame</label><input type="range" id="cf" min="0" max="0" value="0"><output id="cfo">0</output></div>
     <div class="btns" style="margin-bottom:8px">
@@ -137,7 +137,7 @@
     ['restore original', function () { stick.restore('#dense'); }],
     ['highlight paragraph', P({ action: 'highlight', target: '#plain' })],
     ['tap (drift nudge)', P({ action: 'tap', text: 'Back to work?' })],
-    ['read (flow)', P({ action: 'read' })],
+    ['read beside paragraph', P({ action: 'read', target: '#plain' })],
     ['sleep', P({ action: 'sleep' })],
     ['wake / stand', P({ action: 'idle' })],
     ['carry definition note', P({ action: 'carry', target: '#dense', text: 'Organelle: a tiny working part inside a cell.' })],
@@ -149,6 +149,15 @@
   ];
   BTN.forEach(function (b) { var el = document.createElement('button'); el.textContent = b[0]; if (b[2]) el.className = b[2]; el.onclick = b[1]; $('btns').appendChild(el); });
   function log(a, r) { $('status').textContent = a + (r && r.cancelled ? ' (cancelled)' : ' ✓'); console.log('[stick]', a, r); }
+
+  var apiHelp = document.createElement('p');
+  apiHelp.className = 'hint';
+  apiHelp.innerHTML = '<b>Target cheat sheet:</b> pass a page element or selector as <code>target</code>. ' +
+    '<code>read</code>, <code>magnify</code>, <code>highlight</code>, <code>walk</code>, and <code>run</code> can go beside a target. ' +
+    '<code>punch</code> and <code>correct</code> need a word Range/element; <code>erase</code> needs a paragraph element. ' +
+    '<code>idle</code>, <code>sleep</code>, and <code>say</code> do not need a target. ' +
+    'For example: <code>stick.perform({ action: "read", target: "#plain" })</code>.';
+  $('btns').insertAdjacentElement('afterend', apiHelp);
 
   // ---------- live typing flow (the pattern for Dev B) ----------
   var typingTimer = null;
@@ -176,6 +185,7 @@
     cv.width = S.fw * z; cv.height = S.fh * z; cv.style.width = Math.min(cv.width, 380) + 'px'; cv.style.height = 'auto';
     cx.imageSmoothingEnabled = false; cx.clearRect(0, 0, cv.width, cv.height);
     cx.drawImage(S.img, cal.idx * S.fw, 0, S.fw, S.fh, 0, 0, cv.width, cv.height);
+    if (S.overlay) cx.drawImage(S.overlay.img, cal.idx * S.overlay.fw, 0, S.overlay.fw, S.overlay.fh, 0, 0, cv.width, cv.height);
     var rec = cal.out[cal.name] || {}, a = rec.anchor || S.anchor, h = rec.hit || S.hit || S.focus;
     function cross(p, col, label) { if (!p) return; var x = p.x * cv.width, y = p.y * cv.height; cx.strokeStyle = col; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(x - 10, y); cx.lineTo(x + 10, y); cx.moveTo(x, y - 10); cx.lineTo(x, y + 10); cx.stroke(); cx.fillStyle = col; cx.font = '700 12px system-ui'; cx.fillText(label, x + 8, y - 6); }
     cross(a, '#1c7ed6', 'feet'); cross(h, '#e03131', 'fist');

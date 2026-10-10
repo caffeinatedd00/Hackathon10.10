@@ -25,9 +25,10 @@
   var DEFAULTS = {
     container: null,           // null = full-page overlay. Pass an element to embed Stick in a panel/sidebar.
     assetBase: 'assets/', fallbackBase: 'assets-placeholder/',
-    facesRight: true, scale: 0, targetHeight: 120, anchor: { x: 0.5, y: 0.92 },
+    facesRight: true, scale: 0, targetHeight: 220, anchor: { x: 0.5, y: 0.92 },
     speed: 1,                  // global time multiplier (2 = twice as fast: handy for the demo video)
-    walkSpeed: 150, runSpeed: 430, maxWalkMs: 2400, useTurns: false,
+    walkSpeed: 150, runSpeed: 430, maxWalkMs: 2400, useTurns: true,
+    autoContrast: true,
     greenFilter: 'hue-rotate(110deg) saturate(1.5)',
     halo: true,                // crisp white outline so a black Stick shows on dark pages
     zIndex: 2147483647, home: 'bottom-right', homeMargin: 70,
@@ -36,21 +37,22 @@
     ink: '#161616', accent: '#ff5a36',
     pow: ['POW!', 'BAM!', 'WHAP!', 'BONK!'],
     strips: {
-      idle: { file: 'idle_strip8.png', fps: 8, loop: true },
-      walk: { file: 'walk_strip8.png', fps: 12, loop: true },
-      dash: { file: 'dash_strip12.png', fps: 18, loop: true },
-      dashstart: { file: 'dashstart_strip3.png', fps: 14, optional: true },
+      idle: { file: 'idle_strip8.png', fps: 8, loop: true, anchor: { x: 0.512, y: 0.604 } },
+      walk: { file: 'walk_strip8.png', fps: 12, loop: true, anchor: { x: 0.508, y: 0.628 } },
+      dash: { file: 'dash_strip12.png', fps: 18, loop: true, anchor: { x: 0.492, y: 0.612 } },
+      dashstart: { file: 'dashstart_strip3.png', fps: 14, optional: true, anchor: { x: 0.512, y: 0.616 } },
       dashstop: { file: 'dashstop_strip2.png', fps: 10, optional: true },
-      walkturn: { file: 'walkturn_strip2.png', fps: 10, optional: true },
+      walkturn: { file: 'walkturn_strip2.png', fps: 10, optional: true, anchor: { x: 0.504, y: 0.62 } },
       dashturn: { file: 'dashturn_strip2.png', fps: 10, optional: true },
-      jabFire: { file: 'jab_fire_draw_strip20.png', fps: 24, impact: 10, hit: { x: 0.82, y: 0.32 } },
+      jabFire: { file: 'jab_fire_strip20.png', fps: 24, impact: 13, hit: { x: 0.727, y: 0.464 }, anchor: { x: 0.512, y: 0.616 }, overlay: 'jabFireEffect' },
+      jabFireEffect: { file: 'jab_fire_draw_strip20.png', fps: 24, optional: true },
       jabFire2: { file: 'jab_fire_strip20.png', fps: 24, impact: 10, hit: { x: 0.82, y: 0.32 }, optional: true },
       jab: { file: 'jab_strip24.png', fps: 28, impact: 12, hit: { x: 0.82, y: 0.32 } },
       jabDraw: { file: 'jab_draw_strip24.png', fps: 28, impact: 12, hit: { x: 0.82, y: 0.32 }, optional: true },
-      crouch: { file: 'crouch_strip12.png', fps: 14, focus: { x: 0.8, y: 0.62 } },
+      crouch: { file: 'crouch_strip12.png', fps: 14, focus: { x: 0.8, y: 0.62 }, anchor: { x: 0.508, y: 0.608 } },
       taunt: { file: 'dtaunt_strip16.png', fps: 14, focus: { x: 0.78, y: 0.35 } },
-      ftilt: { file: 'ftilt_strip7.png', fps: 14, focus: { x: 0.85, y: 0.45 }, optional: true },
-      pratfall: { file: 'pratfall_strip1.png', fps: 1, loop: true }
+      ftilt: { file: 'ftilt_strip7.png', fps: 14, focus: { x: 0.85, y: 0.45 }, optional: true, anchor: { x: 0.57, y: 0.628 } },
+      pratfall: { file: 'pratfall_strip1.png', fps: 1, loop: true, anchor: { x: 0.516, y: 0.671 } }
     },
     actionStrips: { punch: 'jabFire', correct: 'jabFire', erase: 'jab', magnify: 'crouch', tap: 'taunt', highlight: 'ftilt',
                     wave: 'taunt', cheer: 'taunt', sleep: 'pratfall', read: 'crouch' }
@@ -88,11 +90,11 @@
       posture: 'stand', epoch: 0, busy: 0, lastActivity: 0, filter: '', lastRun: false
     };
     var strips = {};                 // name -> {def, img, src, frames, fw, fh, missing}
-    var host, shadow, stage, fx, actorEl, bodyEl, sprite, bubble, zzz, tray, cardEl, bookEl;
+    var host, shadow, stage, fx, actorEl, bodyEl, sprite, fireSprite, bubble, zzz, tray, cardEl, bookEl;
     var queue = Promise.resolve();
     var notes = [], customActions = {};
     var homeTimer = null, quirkTimer = null, hiddenTimer = null, raf = 0, bubbleTimer = null;
-    var readyPromise = null, lastDrawn = null;
+    var readyPromise = null, lastDrawn = null, contrastCheckAt = 0;
 
     // ------------------------------------------------ coordinates (stage-local px)
     function origin() { if (!cfg.container) return { left: 0, top: 0 }; var r = cfg.container.getBoundingClientRect(); return { left: r.left, top: r.top }; }
@@ -183,6 +185,15 @@
         var idle = pick('idle');
         if (!idle) { console.error('[stick] idle strip missing: nothing to draw'); return; }
         st.scale = cfg.scale > 0 ? cfg.scale : Math.max(1, Math.round(cfg.targetHeight / idle.fh));
+        Object.keys(strips).forEach(function (name) {
+          var S = strips[name], overlay = S.def && S.def.overlay ? strips[S.def.overlay] : null;
+          if (!overlay) return;
+          if (overlay.missing || S.frames !== overlay.frames || Math.abs(S.fw - overlay.fw) > 0.01 || Math.abs(S.fh - overlay.fh) > 0.01) {
+            console.warn('[stick] overlay "' + S.def.overlay + '" does not match "' + name + '" frame dimensions; overlay disabled');
+            return;
+          }
+          S.overlay = overlay;
+        });
         var fb = Object.keys(strips).filter(function (k) { return strips[k].usedFallback; });
         if (fb.length) console.info('[stick] using placeholder art for: ' + fb.join(', ') + ' (copy your PNGs into ' + cfg.assetBase + ')');
       });
@@ -221,8 +232,32 @@
     function settle() { loop('idle'); }
     function setFilter(extra) { st.filter = extra || ''; if (sprite) applyFilter(); }
     function applyFilter() {
+      if (!sprite) return;
+      var invert = cfg.autoContrast && pageBackgroundIsDark()
+        ? 'invert(1) hue-rotate(180deg) '
+        : '';
       var halo = cfg.halo ? 'drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff) drop-shadow(0 1px 0 #fff) drop-shadow(0 -1px 0 #fff) ' : '';
-      sprite.style.filter = (halo + st.filter).trim() || 'none';
+      sprite.style.filter = (invert + halo).trim() || 'none';
+      if (fireSprite) fireSprite.style.filter = st.filter || 'none';
+    }
+    function pageBackgroundIsDark() {
+      var offset = origin();
+      var x = clamp(Math.round(st.x + offset.left), 0, Math.max(0, global.innerWidth - 1));
+      var y = clamp(Math.round(st.y - 4 + offset.top), 0, Math.max(0, global.innerHeight - 1));
+      var node = document.elementFromPoint ? document.elementFromPoint(x, y) : null;
+      while (node) {
+        var color = global.getComputedStyle(node).backgroundColor;
+        var values = color.match(/[\d.]+/g);
+        if (values && values.length >= 3 && (values.length < 4 || Number(values[3]) > 0.5)) {
+          var channels = values.slice(0, 3).map(function (v) {
+            var c = Number(v) / 255;
+            return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+          });
+          return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722 < 0.38;
+        }
+        node = node.parentElement;
+      }
+      return !!(global.matchMedia && global.matchMedia('(prefers-color-scheme: dark)').matches);
     }
 
     function walkRaw(x, y, o) {
@@ -332,6 +367,7 @@
       cardEl = document.createElement('div'); cardEl.className = 'card'; actorEl.appendChild(cardEl);
       bubble = document.createElement('div'); bubble.className = 'bubble'; actorEl.appendChild(bubble);
       zzz = document.createElement('div'); zzz.className = 'zzz'; zzz.innerHTML = '<span>z</span><span>Z</span><span>z</span>'; actorEl.appendChild(zzz);
+      fireSprite = document.createElement('div'); fireSprite.className = 'sprite fire'; fireSprite.style.visibility = 'hidden'; bodyEl.appendChild(fireSprite);
       applyFilter();
       parent.appendChild(host);
 
@@ -344,6 +380,7 @@
         positionHeadProps();
         loop('idle');
         sprite.style.visibility = 'visible';
+        fireSprite.style.visibility = 'visible';
         raf = global.requestAnimationFrame(frame);
         hiddenTimer = setInterval(function () { if (document.hidden) stepClock(performance.now()); }, 120);
         global.addEventListener('resize', onResize);
@@ -374,6 +411,10 @@
       var dt = st.last ? clamp(now - st.last, 0, 100) : 16;
       st.last = now;
       st.clock += dt * cfg.speed;
+      if (now - contrastCheckAt > 650) {
+        contrastCheckAt = now;
+        applyFilter();
+      }
 
       if (st.timers.length) {
         var due = [], rest = [];
@@ -412,9 +453,23 @@
         lastDrawn = S;
       }
       sprite.style.backgroundPosition = (-idx * W) + 'px 0';
+      if (S.overlay && fireSprite) {
+        var overlay = S.overlay;
+        var overlayWidth = overlay.fw * sc, overlayHeight = overlay.fh * sc;
+        fireSprite.style.backgroundImage = 'url("' + overlay.src + '")';
+        fireSprite.style.width = overlayWidth + 'px';
+        fireSprite.style.height = overlayHeight + 'px';
+        fireSprite.style.backgroundSize = (overlay.img.naturalWidth * sc) + 'px ' + (overlay.img.naturalHeight * sc) + 'px';
+        fireSprite.style.backgroundPosition = (-Math.min(idx, overlay.frames - 1) * overlayWidth) + 'px 0';
+        fireSprite.style.visibility = 'visible';
+      } else if (fireSprite) {
+        fireSprite.style.visibility = 'hidden';
+      }
       var ax = S.anchor.x * W, ay = S.anchor.y * H;
       var mirrored = (st.facing > 0) !== cfg.facesRight;
-      sprite.style.transform = mirrored ? 'translate(' + n2(ax) + 'px,' + n2(-ay) + 'px) scaleX(-1)' : 'translate(' + n2(-ax) + 'px,' + n2(-ay) + 'px)';
+      var spriteTransform = mirrored ? 'translate(' + n2(ax) + 'px,' + n2(-ay) + 'px) scaleX(-1)' : 'translate(' + n2(-ax) + 'px,' + n2(-ay) + 'px)';
+      sprite.style.transform = spriteTransform;
+      if (S.overlay && fireSprite) fireSprite.style.transform = spriteTransform;
       actorEl.style.transform = 'translate(' + n2(st.x) + 'px,' + n2(st.y) + 'px)';
       st.frameIdx = idx;
     }
@@ -652,7 +707,17 @@
     ACT.read = async function (c) {
       if (st.posture === 'sit') return;
       await standUp();
-      if (!(c.opts && c.opts.here)) await goHome();
+      if (c.target) {
+        var target = resolveTarget(c.target), rect = locate(target);
+        if (!rect) throw new Error('stick.read: could not locate target');
+        reveal(target);
+        rect = locate(target);
+        var spot = nearSpot(rect);
+        await walk(spot.x, spot.y);
+        st.facing = spot.facing;
+      } else if (!(c.opts && c.opts.here)) {
+        await goHome();
+      }
       st.posture = 'sit';
       await play(cfg.actionStrips.read, { rate: 1.1 });
       setBook(true);

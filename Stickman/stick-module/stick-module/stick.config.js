@@ -25,34 +25,36 @@ window.STICK_CONFIG = {
 
   facesRight: true,        // set false if your sprites face LEFT in the PNGs
   scale: 0,                // 0 = automatic integer scale from targetHeight; or set 1, 2, 3 ...
-  targetHeight: 120,       // on-screen height (px) of one frame when scale is automatic
+  targetHeight: 220,       // on-screen height (px) of one frame when scale is automatic
   anchor: { x: 0.5, y: 0.92 },   // default "feet" point inside a frame (calibrate!)
+  autoContrast: true,      // invert black/dark sprites to white on dark page backgrounds
 
   walkSpeed: 150,          // px/second while walking: tune until the feet stop sliding
   runSpeed: 430,           // px/second while dashing
-  useTurns: false,         // play walkturn / dashturn strips when changing direction (check they face the right way first)
+  useTurns: true,          // play walkturn / dashturn strips when changing direction
 
-  greenFilter: 'hue-rotate(110deg) saturate(1.5)',   // turns the red fire green for the "correct" jab
+  greenFilter: 'hue-rotate(110deg) saturate(1.5)',   // turns only the fire overlay green for the "correct" jab
 
   strips: {
-    idle:      { file: 'idle_strip8.png',            fps: 8,  loop: true },
-    walk:      { file: 'walk_strip8.png',            fps: 12, loop: true },
-    dash:      { file: 'dash_strip12.png',           fps: 18, loop: true },
-    dashstart: { file: 'dashstart_strip3.png',       fps: 14, optional: true },
+    idle:      { file: 'idle_strip8.png',            fps: 8,  loop: true, anchor: { x: 0.512, y: 0.604 } },
+    walk:      { file: 'walk_strip8.png',            fps: 12, loop: true, anchor: { x: 0.508, y: 0.628 } },
+    dash:      { file: 'dash_strip12.png',           fps: 18, loop: true, anchor: { x: 0.492, y: 0.612 } },
+    dashstart: { file: 'dashstart_strip3.png',       fps: 14, optional: true, anchor: { x: 0.512, y: 0.616 } },
     dashstop:  { file: 'dashstop_strip2.png',        fps: 10, optional: true },
-    walkturn:  { file: 'walkturn_strip2.png',        fps: 10, optional: true },
+    walkturn:  { file: 'walkturn_strip2.png',        fps: 10, optional: true, anchor: { x: 0.504, y: 0.62 } },
     dashturn:  { file: 'dashturn_strip2.png',        fps: 10, optional: true },
 
     // red-fire jab: the typo-buster. impact = frame number where the fist lands (0-based).
-    jabFire:   { file: 'jab_fire_draw_strip20.png',  fps: 24, impact: 10, hit: { x: 0.82, y: 0.32 } },
+    jabFire:   { file: 'jab_fire_strip20.png',       fps: 24, impact: 13, hit: { x: 0.727, y: 0.464 }, anchor: { x: 0.512, y: 0.616 }, overlay: 'jabFireEffect' },
+    jabFireEffect: { file: 'jab_fire_draw_strip20.png', fps: 24, optional: true },
     jabFire2:  { file: 'jab_fire_strip20.png',       fps: 24, impact: 10, hit: { x: 0.82, y: 0.32 }, optional: true },
     jab:       { file: 'jab_strip24.png',            fps: 28, impact: 12, hit: { x: 0.82, y: 0.32 } },
     jabDraw:   { file: 'jab_draw_strip24.png',       fps: 28, impact: 12, hit: { x: 0.82, y: 0.32 }, optional: true },
 
-    crouch:    { file: 'crouch_strip12.png',         fps: 14, focus: { x: 0.80, y: 0.62 } },
+    crouch:    { file: 'crouch_strip12.png',         fps: 14, focus: { x: 0.80, y: 0.62 }, anchor: { x: 0.508, y: 0.608 } },
     taunt:     { file: 'dtaunt_strip16.png',         fps: 14, focus: { x: 0.78, y: 0.35 } },
-    ftilt:     { file: 'ftilt_strip7.png',           fps: 14, focus: { x: 0.85, y: 0.45 }, optional: true },
-    pratfall:  { file: 'pratfall_strip1.png',        fps: 1,  loop: true }
+    ftilt:     { file: 'ftilt_strip7.png',           fps: 14, focus: { x: 0.85, y: 0.45 }, optional: true, anchor: { x: 0.57, y: 0.628 } },
+    pratfall:  { file: 'pratfall_strip1.png',        fps: 1,  loop: true, anchor: { x: 0.516, y: 0.671 } }
   },
 
   // Which strip plays for which action (change these to re-skin an action without touching code).
@@ -63,7 +65,7 @@ window.STICK_CONFIG = {
     magnify: 'crouch',       // squats down to inspect the text
     tap: 'taunt',            // drift nudge
     highlight: 'ftilt',      // forward swing while the marker sweeps
-    wave: 'taunt',
+    wave: 'taunt',            // dtaunt has a raised-arm gesture; use as the greeting until a wave strip exists
     cheer: 'taunt',
     sleep: 'pratfall',
     read: 'crouch'           // sitting/reading pose until you add a dedicated strip
