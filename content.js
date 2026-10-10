@@ -106,7 +106,31 @@
     if (focus === "drift") return setStick("tap");
     setStick("idle");
   }
+  function setStick(action = "idle", text)
+  {
+    let atHome = true;
+  function crossScreen(ms) {
+    const dist = Math.min(innerWidth - 160, 520);
+    wrap.style.transition = `transform ${ms}ms linear`;
+    wrap.style.transform = atHome ? `translateX(${-dist}px)` : "translateX(0)";
+    atHome = !atHome;
+  }
 
+  function setStick(action = "idle", text) {
+    if (!ACTIONS.includes(action)) action = "idle";
+    clearTimeout(idleTimer);
+    wrap.className = action;
+    if (action === "walk" || action === "carry") crossScreen(HOLD[action]);
+    if (text) {
+      bubble.textContent = text;
+      bubble.classList.add("show");
+      clearTimeout(bubbleTimer);
+      bubbleTimer = setTimeout(() => bubble.classList.remove("show"), Math.max(4000, text.length * 70));
+    }
+    if (HOLD[action]) idleTimer = setTimeout(() => setStick("idle"), HOLD[action]);
+  }
+  globalThis.StickOverlay = { set: setStick };
+  }
   api.runtime.onMessage.addListener((msg) => {
     if (msg?.action) setStick(msg.action, msg.text);
     else if (msg?.focus || msg?.reading) applyState(msg);

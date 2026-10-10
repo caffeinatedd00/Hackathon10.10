@@ -120,6 +120,13 @@
         };
       });
     },
+        // Paragraphs on screen right now, with live dwell
+    visible() {
+      return [...visible].filter((el) => records.has(el)).map((el) => {
+        const r = records.get(el);
+        return { el, id: r.id, words: r.words, dwellMs: liveDwell(r), scrollBacks: r.scrollBacks };
+      });
+    },
   };
 
   scan(document.body);
