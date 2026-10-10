@@ -80,7 +80,7 @@
   function getKey() {
     if (!keyPromise) {
       keyPromise = (async () => {
-        if (CFG.GEMINI_API_KEY && CFG.GEMINI_API_KEY !== "PASTE_KEY_HERE") return CFG.GEMINI_API_KEY;
+        if (CFG.GEMINI_API_KEY && CFG.GEMINI_API_KEY !== "AQ.Ab8RN6LSWTWWhTp93D6S6AcjFhVpOhivHinZdUesZRVfCRUuGA") return CFG.GEMINI_API_KEY;
         try {
           const text = await (await fetch(browser.runtime.getURL("key.env"))).text();
           const m = text.match(/^\s*GEMINI_API_KEY\s*=\s*["']?([^"'\r\n#]+?)["']?\s*$/m);
