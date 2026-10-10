@@ -1,5 +1,5 @@
 const api = typeof browser !== "undefined" ? browser : chrome;
-const MOCK = true; // set to false once the background script sends real messages
+const MOCK = false; // set to false once the background script sends real messages
 
 const $ = (s) => document.querySelector(s);
 const state = { task: null, focus: "idle", reading: "ok", groups: [], summaries: [], notes: [] };
