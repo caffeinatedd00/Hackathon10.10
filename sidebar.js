@@ -219,37 +219,6 @@ document.querySelectorAll(".seg button").forEach((b) =>
     document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== "view-" + b.dataset.view));
   }));
 
-/* ---------- mock data (dev only) ---------- */
-function demoGroups() {
-  const tab = (id, title, url, sleeping = false) => ({ id, title, url, sleeping });
-  const groups = [
-    { id: 1, name: "Neural networks revision", color: "blue", tabs: [
-      tab(1, "Backpropagation explained", "https://example.edu/backprop"),
-      tab(2, "Lecture 7: Optimisation", "https://moodle.qmul.ac.uk/lecture7"),
-      tab(3, "Attention Is All You Need", "https://arxiv.org/abs/1706.03762") ] },
-    { id: 2, name: "Essay research", color: "purple", tabs: [
-      tab(4, "Ethics of AI: a survey", "https://journals.example.org/ethics"),
-      tab(5, "Google Scholar", "https://scholar.google.com") ] },
-    { id: 3, name: "Off-task", color: "orange", tabs: [
-      tab(6, "Funniest cat videos", "https://www.youtube.com/watch?v=1", true),
-      tab(7, "Football scores", "https://www.bbc.co.uk/sport", true) ] },
-  ];
-  const all = groups.flatMap((g) => g.tabs);
-  const t = all[Math.floor(Math.random() * all.length)];
-  t.sleeping = !t.sleeping;
-  return groups;
-}
-const SUMMARIES = [
-  ["Attention Is All You Need", "https://arxiv.org/abs/1706.03762", "Introduces the Transformer, which replaces recurrence with self-attention so sequences can be processed in parallel."],
-  ["Ethics of AI: a survey", "https://journals.example.org/ethics", "Reviews fairness, accountability and transparency, and argues that governance needs to keep pace with deployment."],
-];
-const NOTES = [
-  ["Attention Is All You Need", "Self-attention relates every position in a sequence to every other position."],
-  ["Lecture 7: Optimisation", "Adam combines momentum with per-parameter learning rates."],
-];
-const FOCUSES = ["flow", "drift", "stuck", "idle"];
-let si = 0, ni = 0, fi = 0;
-
 /* ---------- start ---------- */
 (async function init() {
   const hadSaved = await load();
