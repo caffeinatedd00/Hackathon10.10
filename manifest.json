@@ -3,7 +3,9 @@
   "name": "STICK",
   "version": "0.1",
   "browser_specific_settings": { "gecko": { "id": "stick@hackathon.local" } },
-  "permissions": ["tabs"],
+  "permissions": ["tabs", "storage"],
+  "host_permissions": ["https://generativelanguage.googleapis.com/*"],
+  "background": { "scripts": ["config.js", "ai.js"] },
   "sidebar_action": {
     "default_title": "STICK",
     "default_panel": "sidebar.html",
@@ -15,7 +17,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js", "reading.js"],
+      "js": ["ai-client.js", "content.js", "reading.js"],
       "run_at": "document_idle"
     }
   ]
