@@ -258,7 +258,7 @@ function noteCard(n) {
 function renderNotes() {
   const box = $("#view-notes");
   box.replaceChildren();
-  if (!state.notes.length) box.append(empty("No notes yet", "Passages you re-read will be saved here automatically."));
+  if (!state.notes.length) box.append(empty("No notes yet", "Select a passage and right-click to save it with its source."));
   state.notes.forEach((n) => box.append(noteCard(n)));
   $("#count-notes").textContent = state.notes.length;
 }

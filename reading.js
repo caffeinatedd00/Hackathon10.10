@@ -1,7 +1,7 @@
 (() => {
   if (globalThis.StickReading) return;
 
-  const SEL = "p, li, h1, h2, h3, h4, h5, h6, blockquote";
+  const SEL = "p, li, h1, h2, h3, h4, h5, h6, blockquote, [role='paragraph']";
   const SKIP = "nav, footer, aside, form, button, [role='navigation'], [aria-hidden='true']";
   const MIN_CHARS = 40;          // body text shorter than this isn't a "paragraph" (headings are exempt)
   const VISIBLE_RATIO = 0.6;     // an element counts as on screen at 60% visible...

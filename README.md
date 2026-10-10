@@ -39,13 +39,14 @@ Every feature is just an **action the engine takes** when a state changes. That 
 ### Must-haves (the demo is built on these)
 - [x] Calibrated sprite Stick is injected as an overlay and reacts to state/action messages
 - [x] Tabs are grouped in the sidebar using local title/hostname similarity and named via `nameGroup()`
-- [x] Re-reading/slow-dwell signals offer a reversible paragraph simplification; re-read passages become notes
+- [x] Re-reading/slow-dwell signals can offer a reversible paragraph simplification; saving notes is user-initiated
 - [x] Returning after an idle break triggers a welcome-back briefing
 - [x] Inactive tabs can be manually snoozed per task group; the active tab is protected and clicking a snoozed tab restores it. Automatic snoozing is not enabled.
 
 ### Additional implemented features
-- [x] The reader can save a summary after detecting a skim pattern
-- [x] Summaries and re-read notes persist in the sidebar and can be edited/copied/deleted
+- [x] The reader can save a summary after a substantial skim pattern or explicitly summarise selected text
+- [x] Summaries and user-saved notes persist in the sidebar and can be edited/copied/deleted
+- [x] Selecting text and right-clicking offers Stick actions to summarise, paraphrase, or save it to Notes
 - [x] The sidebar keeps an activity history for regrouping, reading help, proofreading and saved work
 - [x] Focus state is inferred from rapid tab switching and sustained active-tab time
 - [x] The typo checker can offer a reviewable batch of spelling corrections in ordinary text fields, search boxes and `contenteditable` editors
@@ -90,7 +91,7 @@ These remain follow-up work; they are not implied by the current demo.
 - Group names are generated from the tab titles locally when the AI key is unavailable; enabling Gemini can supply generated names instead.
 - `inbox.js` keeps local history of tab regrouping, reading support, proofreading and saved notes/summaries; the sidebar is the history hub. Inactive group tabs can be snoozed explicitly and are restored by selecting them.
 - `ai.js` provides the shared language API and cache; it defaults to mock/fallback responses unless configured.
-- `reading.js` tracks visible text and re-reads. `glue.js` calls the AI and Stick actor for rewrite, note, summary, and briefing flows.
+- `reading.js` tracks visible text and re-reads without creating notes automatically. `glue.js` offers opt-in reading help, larger-article summaries, selection actions, and briefing flows.
 - `Stickman/stick-module/stick-module/` contains the calibrated sprite actor, its configuration, bridge, and standalone playground.
 - `sidebar.js` displays current tab groups plus saved summaries and notes, and drives a larger sidebar Stick: he greets task changes, reads during focus, taps on drift, and asks before offering reading help. The content-page Stick remains the one that walks to and acts on real page text.
 
@@ -102,13 +103,13 @@ Open `mockup.html` directly for a standalone, repeatable video walkthrough. Sele
 
 The example browser includes recognizable PubMed, Google Scholar and QMplus pages with clearly marked sample content. Their links open the real services in a new tab, but the mock pages do not scrape or alter those sites. The Firefox extension itself runs on supported real web pages, subject to browser permissions and editor limitations.
 
-The demonstration is intentionally candid: observable rereading/dwell signals are only hints that a reader *may* want help, not proof of confusion; the extension asks before simplifying. Task workspaces group tabs in the sidebar without moving or closing them, snoozing is an explicit per-group action that leaves the tab available to restore, focus mode does not block sites, and spelling suggestions are reviewed before one batch is applied. The original passage/draft can be restored or undone. Ordinary text inputs and contenteditable editors are supported; canvas-based editors such as Google Docs remain unsupported. The mockup does not invent deadlines or connect to live AI.
+The demonstration is intentionally candid: observable rereading/dwell signals are only hints that a reader *may* want help, not proof of confusion; the extension asks before simplifying. Notes are saved only when requested. Select text and right-click to ask Stick to summarise, paraphrase, or save it. Automatic skim summaries require a substantial article; selected text can be summarised at any length. Task workspaces group tabs in the sidebar without moving or closing them, snoozing is an explicit per-group action that leaves the tab available to restore, focus mode does not block sites, and spelling suggestions are reviewed before one batch is applied. The original passage/draft can be restored or undone. Ordinary text inputs and contenteditable editors are supported; canvas-based editors such as Google Docs remain unsupported. The mockup does not invent deadlines or connect to live AI.
 
 ### Recording the Firefox demo
 
 1. In Firefox, open `about:debugging#/runtime/this-firefox` and load this project's `manifest.json` as a temporary add-on.
 2. Open the STICK sidebar, then visit the real PubMed, Google Scholar and QMplus pages you plan to show. The sidebar groups available tabs; the content script/Stick can only run where Firefox grants the extension access.
-3. Use the local `mockup.html` **Play showcase** for the repeatable, timed story and its sample draft. Keep the **SIMULATED PAGE** notice visible when recording that part; click **Open real site** to show the corresponding live website separately.
+3. Select a paragraph on a real page and right-click to demonstrate Stick’s selection actions. Use the local `mockup.html` **Play showcase** for the repeatable story and sample draft; keep its **SIMULATED PAGE** notice visible, and open real sites separately.
 
 ---
 

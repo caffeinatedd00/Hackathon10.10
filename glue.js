@@ -11,9 +11,9 @@
   const ACTIVE_WITHIN = 20000;       // only judge "slow" if the user touched the page this recently
   const COOLDOWN = 8000;             // minimum gap between two rewrites
   const BREAK_MS = 5 * 60 * 1000;    // set to about 20000 for the demo
-  const SKIM_MIN_PARAS = 6;          // skipped paragraphs needed...
+  const SKIM_MIN_PARAS = 8;          // skipped text blocks needed...
   const SKIM_MAX_DWELL = 700;        // ...each seen for less than this
-  const SKIM_MIN_WORDS = 500;        // and the page must be long
+  const SKIM_MIN_WORDS = 900;        // and the article must be substantial
 
   const send = (msg) => api.runtime.sendMessage(msg).catch((err) => {
     console.warn("[stick] runtime message failed:", err);
@@ -36,6 +36,8 @@
   const handled = new WeakSet();
   const offered = new WeakSet();
   let busy = false, lastRewrite = 0;
+  let readingOffer = null;
+  let lastReadingOffer = 0;
   const typoTimers = new WeakMap();
   const checkedText = new WeakMap();
   const proofreadPrompts = new WeakMap();
@@ -50,6 +52,15 @@
     return (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)
       ? !el.disabled && !el.readOnly && el.type !== "password" && el.type !== "hidden"
       : el.isContentEditable;
+  }
+
+  function scheduleTypoCheck(el, delay = 700) {
+    proofreadPrompts.get(el)?.remove();
+    proofreadPrompts.delete(el);
+    clearTimeout(typoTimers.get(el));
+    typoTimers.set(el, setTimeout(() => {
+      checkEditable(el).catch((err) => console.warn("[stick] typo check failed:", err));
+    }, delay));
   }
 
   function findWordRange(root, word) {
@@ -172,12 +183,11 @@
   addEventListener("input", (event) => {
     const el = event.target;
     if (!(el instanceof HTMLElement) || !editableTarget(el)) return;
-    proofreadPrompts.get(el)?.remove();
-    proofreadPrompts.delete(el);
-    clearTimeout(typoTimers.get(el));
-    typoTimers.set(el, setTimeout(() => {
-      checkEditable(el).catch((err) => console.warn("[stick] typo check failed:", err));
-    }, 700));
+    scheduleTypoCheck(el);
+  }, true);
+  addEventListener("focusout", (event) => {
+    const el = event.target;
+    if (el instanceof HTMLElement && editableTarget(el)) scheduleTypoCheck(el, 0);
   }, true);
 
   function pagePrompt(el, message, actions) {
@@ -221,8 +231,10 @@
   }
 
   function offerSimplification(el) {
-    if (busy || handled.has(el) || offered.has(el) || Date.now() - lastRewrite < COOLDOWN) return;
+    if (busy || readingOffer?.isConnected || Date.now() - lastReadingOffer < 30000
+      || handled.has(el) || offered.has(el) || Date.now() - lastRewrite < COOLDOWN) return;
     offered.add(el);
+    lastReadingOffer = Date.now();
     send({ reading: "confused" });
     stick("magnify", "Want me to make this simpler?", el);
     let prompt;
@@ -232,6 +244,7 @@
         primary: true,
         run: () => {
           prompt.remove();
+          readingOffer = null;
           simplifyParagraph(el).catch((error) => console.warn("[stick] simplify failed:", error));
         },
       },
@@ -239,12 +252,14 @@
         label: "Not now",
         run: () => {
           prompt.remove();
+          readingOffer = null;
           handled.add(el);
           send({ reading: "ok" });
           stick("idle");
         },
       },
     ]);
+    readingOffer = prompt;
   }
 
   async function simplifyParagraph(el) {
@@ -308,17 +323,9 @@
     }
   }
 
-  /* ---------- 2. auto-notes from re-read passages ---------- */
-  const noted = new WeakSet();
-  function saveNote(el) {
-    if (noted.has(el)) return;
-    noted.add(el);
-    inbox("note", { ...pageInfo(), text: el.textContent.trim().slice(0, 400), ts: Date.now() });
-  }
-
+  /* ---------- 2. re-read signals offer help; saving is explicit ---------- */
   StickReading.on((e) => {
     if (e.type !== "scrollback") return;
-    saveNote(e.el); // first re-read becomes a note (runs before any rewrite changes the text)
     if (e.scrollBacks >= CONFUSED_SCROLLBACKS) offerSimplification(e.el);
   });
 
@@ -373,13 +380,26 @@
 
   /* ---------- 4. skim summary ---------- */
   let summarised = false;
+  function articleText() {
+    const roots = [...document.querySelectorAll("article, main")];
+    const root = roots
+      .map((el) => ({ el, words: (el.innerText || "").trim().split(/\s+/).filter(Boolean).length }))
+      .sort((a, b) => b.words - a.words)[0]?.el || document.body;
+    const blocks = [...root.querySelectorAll("h1, h2, h3, h4, p, li, blockquote, [role='paragraph']")]
+      .filter((el) => el.textContent.trim().length > 30)
+      .map((el) => el.textContent.trim());
+    const text = (blocks.length ? blocks.join("\n\n") : root.innerText || "").trim();
+    return text.slice(0, 12000);
+  }
+
   async function summarisePage() {
     if (summarised) return;
-    summarised = true; // once per page
+    const text = articleText();
+    if (text.split(/\s+/).length < SKIM_MIN_WORDS) return;
+    summarised = true;
     stick("read", "Skimming? I'm writing you a summary.");
     try {
-      const root = document.querySelector("article, main") || document.body;
-      const summary = await StickAI.summarise(root.innerText.trim());
+      const summary = await StickAI.summarise(text);
       inbox("summary", { ...pageInfo(), text: summary, ts: Date.now() });
       stick("read", "Summary saved in the sidebar.");
     } catch (err) {
@@ -397,6 +417,52 @@
     if (words >= SKIM_MIN_WORDS && skipped >= SKIM_MIN_PARAS) summarisePage();
   }, 2000);
 
+  async function handleSelectionAction(action, selectedText) {
+    const text = String(selectedText || "").trim().slice(0, 4000);
+    if (!text) return;
+    const selection = getSelection();
+    const range = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
+    const anchor = range?.commonAncestorContainer;
+    const target = anchor?.nodeType === Node.ELEMENT_NODE ? anchor : anchor?.parentElement;
+    const host = target?.closest("p, li, blockquote, article, section") || target || document.body;
+    if (action === "save") {
+      inbox("note", { ...pageInfo(), text, ts: Date.now() });
+      await stick("carry", "Saved to Notes.");
+      return;
+    }
+    if (action === "summarise") {
+      const summary = await StickAI.summarise(text);
+      inbox("summary", { ...pageInfo(), text: summary, ts: Date.now() });
+      let card;
+      card = pagePrompt(host, summary, [{ label: "Close", primary: true, run: () => card.remove() }]);
+      await stick("read", "Summary saved in the sidebar.");
+      return;
+    }
+    if (action === "paraphrase") {
+      const paraphrase = await StickAI.simplify(text, 2);
+      const card = pagePrompt(host, paraphrase, [
+        {
+          label: "Save to Notes",
+          primary: true,
+          run: () => {
+            inbox("note", { ...pageInfo(), text: paraphrase, ts: Date.now() });
+            card.remove();
+          },
+        },
+        { label: "Close", run: () => card.remove() },
+      ]);
+      await stick("say", "Here's another way to put it.");
+    }
+  }
+
+  api.runtime.onMessage.addListener((message) => {
+    if (message?.type !== "stick:selection" || !["summarise", "paraphrase", "save"].includes(message.action)) return;
+    return handleSelectionAction(message.action, message.text).catch((error) => {
+      console.error("[stick] selected-text action failed:", error);
+      throw error;
+    });
+  });
+
   /* ---------- dev shortcuts: test without waiting ---------- */
   if (DEV) {
     addEventListener("keydown", (e) => {
@@ -409,5 +475,5 @@
     });
   }
 
-  globalThis.StickGlue = { simplifyParagraph, welcomeBack, summarisePage };
+  globalThis.StickGlue = { simplifyParagraph, welcomeBack, summarisePage, handleSelectionAction };
 })();

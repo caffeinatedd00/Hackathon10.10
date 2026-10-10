@@ -128,6 +128,40 @@
     }, 350);
   }
 
+  async function installSelectionMenus() {
+    if (!api.contextMenus) return;
+    await api.contextMenus.removeAll();
+    const items = [
+      ["stick-summarise-selection", "Call Stick: Summarise selection"],
+      ["stick-paraphrase-selection", "Call Stick: Paraphrase selection"],
+      ["stick-save-selection", "Call Stick: Save selection to Notes"],
+    ];
+    for (const [id, title] of items) {
+      await api.contextMenus.create({ id, title, contexts: ["selection"] });
+    }
+  }
+
+  if (api.contextMenus) {
+    installSelectionMenus().catch((error) => {
+      console.error("[stick/engine] selection menu setup failed:", error);
+    });
+    api.contextMenus.onClicked.addListener((info, tab) => {
+      const action = {
+        "stick-summarise-selection": "summarise",
+        "stick-paraphrase-selection": "paraphrase",
+        "stick-save-selection": "save",
+      }[info.menuItemId];
+      if (!action || !tab?.id || !info.selectionText) return;
+      api.tabs.sendMessage(tab.id, {
+        type: "stick:selection",
+        action,
+        text: info.selectionText,
+      }).catch((error) => {
+        console.warn("[stick/engine] selected-text action could not reach the page:", error);
+      });
+    });
+  }
+
   async function sendActive(message) {
     if (activeTabId == null) return;
     try {

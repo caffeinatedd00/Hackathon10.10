@@ -3,7 +3,7 @@
   "name": "STICK",
   "version": "0.1",
   "browser_specific_settings": { "gecko": { "id": "stick@hackathon.local" } },
-  "permissions": ["tabs", "storage", "idle"],
+  "permissions": ["tabs", "storage", "idle", "contextMenus"],
   "host_permissions": ["https://generativelanguage.googleapis.com/*"],
   "background": { "scripts": ["ai.js", "inbox.js", "engine.js"] },
   "sidebar_action": {
