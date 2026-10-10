@@ -40,6 +40,18 @@
   const checkedText = new WeakMap();
   const proofreadPrompts = new WeakMap();
 
+  function editableText(el) {
+    return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
+      ? el.value
+      : el.innerText || el.textContent || "";
+  }
+
+  function editableTarget(el) {
+    return (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)
+      ? !el.disabled && !el.readOnly && el.type !== "password" && el.type !== "hidden"
+      : el.isContentEditable;
+  }
+
   function findWordRange(root, word) {
     const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const pattern = new RegExp(`\\b${escaped}\\b`, "i");
@@ -65,11 +77,14 @@
   }
 
   async function checkEditable(el) {
-    const text = el.innerText || el.textContent || "";
+    const text = editableText(el);
     if (text.length < 3 || checkedText.get(el) === text) return;
     const issues = await StickAI.checkText(text);
-    if (!el.isConnected || (el.innerText || el.textContent || "") !== text) return;
-    const suggestions = issues.filter((issue) => findWordRange(el, issue.word));
+    if (!el.isConnected || editableText(el) !== text) return;
+    const suggestions = issues.filter((issue) =>
+      el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
+        ? new RegExp(`\\b${issue.word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(text)
+        : findWordRange(el, issue.word));
     if (!suggestions.length) {
       checkedText.set(el, text);
       return;
@@ -102,7 +117,38 @@
   }
 
   async function applyCorrections(el, originalText, issues) {
-    if (!el.isConnected || (el.innerText || el.textContent || "") !== originalText) return;
+    if (!el.isConnected || editableText(el) !== originalText) return;
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      let correctedText = originalText;
+      let corrected = 0;
+      for (const issue of issues) {
+        const escaped = issue.word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const pattern = new RegExp(`\\b${escaped}\\b`, "gi");
+        correctedText = correctedText.replace(pattern, (source) => {
+          corrected++;
+          return matchCase(source, issue.suggestion);
+        });
+      }
+      if (!corrected) return;
+      el.value = correctedText;
+      if (start != null && end != null) {
+        const delta = correctedText.length - originalText.length;
+        el.setSelectionRange(Math.min(start + delta, correctedText.length), Math.min(end + delta, correctedText.length));
+      }
+      checkedText.set(el, correctedText);
+      el.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertReplacementText" }));
+      checkedText.set(el, correctedText);
+      inbox("activity", {
+        title: "Draft proofread",
+        text: `${corrected} spelling ${corrected === 1 ? "correction" : "corrections"} applied in one pass.`,
+        ...pageInfo(),
+        ts: Date.now(),
+      });
+      stick("say", "Fixed the spelling. Have a look.");
+      return;
+    }
     let corrected = 0;
     for (const issue of issues) {
       if (!el.isConnected) break;
@@ -112,7 +158,7 @@
       await stick("punch", correction, range);
       corrected++;
     }
-    checkedText.set(el, el.innerText || el.textContent || "");
+    checkedText.set(el, editableText(el));
     if (corrected) {
       inbox("activity", {
         title: "Draft proofread",
@@ -125,7 +171,7 @@
 
   addEventListener("input", (event) => {
     const el = event.target;
-    if (!(el instanceof HTMLElement) || !el.isContentEditable) return;
+    if (!(el instanceof HTMLElement) || !editableTarget(el)) return;
     proofreadPrompts.get(el)?.remove();
     proofreadPrompts.delete(el);
     clearTimeout(typoTimers.get(el));
@@ -136,7 +182,15 @@
 
   function pagePrompt(el, message, actions) {
     const host = document.createElement("span");
-    host.style.cssText = "display:block;margin:8px 0;position:relative;z-index:2147483000;";
+    const isFormControl = el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement;
+    host.style.cssText = isFormControl
+      ? "display:block;position:fixed;z-index:2147483000;max-width:min(420px,calc(100vw - 16px));"
+      : "display:block;margin:8px 0;position:relative;z-index:2147483000;";
+    if (isFormControl) {
+      const rect = el.getBoundingClientRect();
+      host.style.left = `${Math.max(8, Math.min(rect.left, innerWidth - 428))}px`;
+      host.style.top = `${Math.min(rect.bottom + 8, innerHeight - 80)}px`;
+    }
     host.setAttribute("data-stick-reading-prompt", "");
     const root = host.attachShadow({ mode: "closed" });
     const style = document.createElement("style");

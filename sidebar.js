@@ -122,13 +122,47 @@ function tabRow(t) {
     t.sleeping ? h("span", { class: "zzz" }, "zzz") : h("span", { class: "host" }, host(t.url)));
 }
 
+async function snoozeGroup(group, button) {
+  const candidates = group.tabs.filter((tab) => !tab.active && !tab.sleeping);
+  if (!candidates.length) return;
+  if (typeof api.tabs.discard !== "function") {
+    console.error("[stick/sidebar] this Firefox version does not support tab snoozing");
+    button.textContent = "Snooze unavailable";
+    button.title = "This Firefox version does not support tabs.discard().";
+    return;
+  }
+  button.disabled = true;
+  button.textContent = "Snoozing…";
+  try {
+    const discarded = await api.tabs.discard(candidates.map((tab) => tab.id));
+    const count = Array.isArray(discarded) ? discarded.filter((tab) => tab.discarded).length : candidates.length;
+    button.textContent = count ? `Snoozed ${count}` : "No tabs snoozed";
+  } catch (error) {
+    console.error("[stick/sidebar] tab snoozing failed:", error);
+    button.textContent = "Snooze failed";
+    button.title = error.message;
+  }
+}
+
 function groupCard(g) {
   const asleep = g.tabs.filter((t) => t.sleeping).length;
+  const snoozable = g.tabs.filter((t) => !t.active && !t.sleeping).length;
+  const snoozeButton = h("button", {
+    class: "ghost snooze",
+    type: "button",
+    disabled: snoozable === 0,
+    title: "Unload inactive tabs in this task. Click a snoozed tab to restore it.",
+    onclick: (event) => {
+      event.stopPropagation();
+      snoozeGroup(g, event.currentTarget);
+    },
+  }, asleep ? `Snooze inactive (${snoozable}) · ${asleep} snoozed` : `Snooze inactive (${snoozable})`);
   const el = h("details", { class: "group" },
     h("summary", {},
       h("span", { class: "dot" }),
       h("span", { class: "gname" }, g.name),
       h("span", { class: "meta" }, `${g.tabs.length} tabs` + (asleep ? ` · ${asleep} asleep` : ""))),
+    h("div", { class: "group-tools" }, snoozeButton),
     h("div", { class: "tabs-list" }, g.tabs.map(tabRow)));
   el.style.setProperty("--c", `var(--${g.color || "grey"})`);
   el.open = !collapsed.has(g.id);

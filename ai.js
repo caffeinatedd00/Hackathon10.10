@@ -211,9 +211,30 @@
   /* ---------- the functions ---------- */
   function nameGroup(titles = [], _o = {}) {
     const list = (Array.isArray(titles) ? titles : []).map((t) => clip(t, 120)).filter(Boolean).slice(0, 12);
+    const ignored = new Set([
+      "about", "google", "search", "scholar", "pubmed", "qmul", "qmplus", "result", "results",
+      "article", "articles", "home", "page", "online", "the", "and", "for", "with", "from",
+      "your", "this", "that", "www", "com", "org", "edu", "co", "uk",
+    ]);
+    const counts = new Map();
+    for (const title of list) {
+      const seen = new Set();
+      for (const token of title.match(/[A-Za-z][A-Za-z0-9'-]{2,}/g) || []) {
+        const word = token.toLowerCase();
+        if (!ignored.has(word) && !seen.has(word)) {
+          seen.add(word);
+          counts.set(word, (counts.get(word) || 0) + 1);
+        }
+      }
+    }
+    const localName = [...counts]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([word]) => word[0].toUpperCase() + word.slice(1))
+      .join(" ") || "Study Research";
     return run("nameGroup", list, {
       prompt: `Name this group of browser tabs in 2 to 4 words (Title Case, no punctuation).\nTab titles:\n- ${list.join("\n- ")}`,
-      fallbackText: ["Neural Networks", "Essay Research", "Lecture Notes", "Reading List"][sum(list.join("|")) % 4],
+      fallbackText: localName,
       parse: (t) => { const s = String(t ?? "").replace(/["'.\n]/g, "").trim().slice(0, 40); return s || null; },
       ..._o,
     });
@@ -271,8 +292,12 @@
   }
 
   // Tiny offline dictionary: used for fake mode and as the fallback if the API is unavailable
-  const TYPOS = { teh: "the", recieve: "receive", definately: "definitely", seperate: "separate", alot: "a lot",
-                  occured: "occurred", libary: "library", tomorow: "tomorrow", wich: "which", becuase: "because" };
+  const TYPOS = {
+    teh: "the", recieve: "receive", definately: "definitely", seperate: "separate", alot: "a lot",
+    occured: "occurred", libary: "library", tomorow: "tomorrow", tommorow: "tomorrow",
+    wich: "which", becuase: "because", wierd: "weird", adress: "address", untill: "until",
+    accomodate: "accommodate",
+  };
   function localCheck(text) {
     const out = [], seen = new Set();
     for (const m of text.matchAll(/[A-Za-z']+/g)) {

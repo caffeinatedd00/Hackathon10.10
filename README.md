@@ -41,21 +41,21 @@ Every feature is just an **action the engine takes** when a state changes. That 
 - [x] Tabs are grouped in the sidebar using local title/hostname similarity and named via `nameGroup()`
 - [x] Re-reading/slow-dwell signals offer a reversible paragraph simplification; re-read passages become notes
 - [x] Returning after an idle break triggers a welcome-back briefing
-- [ ] Automatic tab discard/sleep is not enabled yet; do not assume groups are automatically slept
+- [x] Inactive tabs can be manually snoozed per task group; the active tab is protected and clicking a snoozed tab restores it. Automatic snoozing is not enabled.
 
 ### Additional implemented features
 - [x] The reader can save a summary after detecting a skim pattern
 - [x] Summaries and re-read notes persist in the sidebar and can be edited/copied/deleted
 - [x] The sidebar keeps an activity history for regrouping, reading help, proofreading and saved work
 - [x] Focus state is inferred from rapid tab switching and sustained active-tab time
-- [x] The AI typo checker can offer a reviewable batch of spelling corrections in a `contenteditable` editor
+- [x] The typo checker can offer a reviewable batch of spelling corrections in ordinary text fields, search boxes and `contenteditable` editors
 
 ### Not integrated yet
 
 - Automatic tab discard/sleep and group-based tab hiding
 - Embedding-based task clustering, distraction-site shielding, and tab-count mood
 - Auto-glossary, copy capture, resume position, deadline radar, and session recap
-- Textarea/Google Docs typo correction (canvas editors do not expose editable text ranges)
+- Google Docs/canvas-editor typo correction (canvas editors do not expose editable text ranges)
 
 These remain follow-up work; they are not implied by the current demo.
 
@@ -87,7 +87,8 @@ These remain follow-up work; they are not implied by the current demo.
 ### Current integration map
 
 - `engine.js` groups open web tabs locally, broadcasts task/focus state, and sends the welcome-back action.
-- `inbox.js` keeps local history of tab regrouping, reading support, proofreading and saved notes/summaries; the sidebar is the history hub.
+- Group names are generated from the tab titles locally when the AI key is unavailable; enabling Gemini can supply generated names instead.
+- `inbox.js` keeps local history of tab regrouping, reading support, proofreading and saved notes/summaries; the sidebar is the history hub. Inactive group tabs can be snoozed explicitly and are restored by selecting them.
 - `ai.js` provides the shared language API and cache; it defaults to mock/fallback responses unless configured.
 - `reading.js` tracks visible text and re-reads. `glue.js` calls the AI and Stick actor for rewrite, note, summary, and briefing flows.
 - `Stickman/stick-module/stick-module/` contains the calibrated sprite actor, its configuration, bridge, and standalone playground.
@@ -101,7 +102,7 @@ Open `mockup.html` directly for a standalone, repeatable video walkthrough. Sele
 
 The example browser includes recognizable PubMed, Google Scholar and QMplus pages with clearly marked sample content. Their links open the real services in a new tab, but the mock pages do not scrape or alter those sites. The Firefox extension itself runs on supported real web pages, subject to browser permissions and editor limitations.
 
-The demonstration is intentionally candid: observable rereading/dwell signals are only hints that a reader *may* want help, not proof of confusion; the extension asks before simplifying. Task workspaces group tabs in the sidebar without moving or closing them, focus mode does not block sites, and spelling suggestions are reviewed before one batch is applied. The original passage/draft can be restored or undone. The contenteditable example is simulated; canvas-based editors such as Google Docs remain unsupported. The mockup does not invent deadlines or connect to live AI.
+The demonstration is intentionally candid: observable rereading/dwell signals are only hints that a reader *may* want help, not proof of confusion; the extension asks before simplifying. Task workspaces group tabs in the sidebar without moving or closing them, snoozing is an explicit per-group action that leaves the tab available to restore, focus mode does not block sites, and spelling suggestions are reviewed before one batch is applied. The original passage/draft can be restored or undone. Ordinary text inputs and contenteditable editors are supported; canvas-based editors such as Google Docs remain unsupported. The mockup does not invent deadlines or connect to live AI.
 
 ### Recording the Firefox demo
 

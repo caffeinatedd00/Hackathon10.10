@@ -101,6 +101,7 @@
         title: tab.title,
         url: tab.url,
         favIconUrl: tab.favIconUrl,
+        active: Boolean(tab.active),
         sleeping: Boolean(tab.discarded),
       })),
     })));
