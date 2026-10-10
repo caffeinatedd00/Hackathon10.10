@@ -19,4 +19,8 @@
       "run_at": "document_idle"
     }
   ]
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 4ab33f9 (added import 'dotenv/config';)
