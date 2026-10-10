@@ -75,3 +75,16 @@ main { padding: 0 14px; }
        background: var(--surface); border-top: 1px solid var(--border); }
 #dev span { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
 #dev button { padding: 3px 8px; border: 1px solid var(--border); border-radius: 8px; background: none; cursor: pointer; }
+.actions { display: flex; gap: 6px; align-items: center; }
+.ghost.danger:hover { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); border-color: var(--red); }
+.ghost.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.ghost.primary:disabled { opacity: .45; cursor: default; }
+.card.editing { border-color: var(--accent); }
+.editor { width: 100%; resize: none; padding: 8px 10px; margin-bottom: 8px; border: 1px solid var(--accent);
+          border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; line-height: 1.45; }
+.editor:focus { outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+.hint { margin-left: auto; color: var(--muted); font-size: 11px; }
+#toast { position: fixed; left: 14px; right: 14px; bottom: 60px; display: flex; align-items: center;
+         justify-content: space-between; padding: 8px 12px; border-radius: 10px;
+         background: var(--text); color: var(--bg); box-shadow: 0 4px 16px rgb(0 0 0 / .25); }
+#toast button { border: 0; background: none; color: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
