@@ -158,8 +158,6 @@ briefing({ task, sleeping, lastSection })   // → string
 - **Gemini API**: language only (naming groups, simplifying text, summaries, briefings)
 - **Check early:** whether your Firefox version has the tab groups API. If not, render groups in your own sidebar.
 
-**Why this architecture? (be ready for the judges)** Detection runs locally for privacy and speed. The LLM is only used where language is needed, so the core logic stays explainable and works offline.
-
 ---
 
 ## ⏱️ Timeline
@@ -173,25 +171,3 @@ briefing({ task, sleeping, lastSection })   // → string
 | **3:15** | Record the video (30 minutes of buffer for retakes) |
 | **3:45** | **Submission deadline** |
 
----
-
-## 🎬 3-Minute Video Outline
-
-| Time | Section |
-|---|---|
-| 0:00 – 0:30 | **Problem:** 40 tabs, distraction, dense reading, and every tool waits for you to ask |
-| 0:30 – 2:15 | **Live demo:** regroup, sleep, confusion rewrite, briefing |
-| 2:15 – 2:45 | **Architecture:** the engine, local embeddings, Gemini only for language |
-| 2:45 – 3:00 | **Close:** *"Your browser had no idea what you were doing. Stick does."* |
-
-**Judging criteria to hit:** Creativity (the character plus a new signal nobody senses today) · Implementation (a demo that visibly works) · Impact (a relatable student problem) · Technical depth (local embeddings, state engine, justified choices).
-
----
-
-## ⚠️ Honest Warnings
-
-1. **Pre-build a scripted demo session:** a dense paper, 15 to 20 tabs across 2 or 3 tasks, one YouTube distraction. Live detection will be fuzzy, so tune thresholds for your demo path and rehearse it.
-2. **Build the engine first, then skin it.** A cute Stick on top of broken detection loses Implementation and Technical depth.
-3. **Animation is the biggest time sink.** Stay at 6 animations and do not polish before the engine works.
-4. **Do not add features after 3:00.** One thing working live beats three half-working.
-5. **Stick is original.** Take inspiration from the stick-figure-on-your-screen idea, but keep his own name, colour and quirks so he is clearly yours.
