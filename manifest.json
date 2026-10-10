@@ -1,21 +1,22 @@
 {
-    "manifest_version": 3,
-    "name": "STICK",
-    "version": "0.1",
-    "browser_specific_settings": { "gecko": { "id": "stick@hackathon.local" } },
-    "permissions": ["tabs"],
-    "sidebar_action": {
-      "default_title": "STICK",
-      "default_panel": "sidebar.html",
-      "open_at_install": true
-    },
-    "content_scripts": [
-  { "matches": ["<all_urls>"], "js": ["content.js", "reading.js"], "run_at": "document_idle" }
-    ]
-    "commands": {
-      "_execute_sidebar_action": { "suggested_key": { "default": "Alt+Shift+S" } }
-    },
-    "content_scripts": [
-      { "matches": ["<all_urls>"], "js": ["content.js"], "run_at": "document_idle" }
-    ]
-  }
+  "manifest_version": 3,
+  "name": "STICK",
+  "version": "0.1",
+  "browser_specific_settings": { "gecko": { "id": "stick@hackathon.local" } },
+  "permissions": ["tabs"],
+  "sidebar_action": {
+    "default_title": "STICK",
+    "default_panel": "sidebar.html",
+    "open_at_install": true
+  },
+  "commands": {
+    "_execute_sidebar_action": { "suggested_key": { "default": "Alt+Shift+S" } }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js", "reading.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
