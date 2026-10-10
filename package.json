@@ -2,7 +2,7 @@
   "name": "hackathon10.10",
   "version": "1.0.0",
   "description": "<div align=\"center\">",
-  "main": "read.js",
+  "main": "reading.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
