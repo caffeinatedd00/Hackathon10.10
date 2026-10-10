@@ -6,6 +6,7 @@ const state = { task: null, focus: "idle", reading: "ok", groups: [], activity: 
 const collapsed = new Set();
 let sidebarStick;
 let lastStickState = "";
+let lastStickTask = null;
 let editing = null;     // { id, draft } while a note is being edited
 let lastDeleted = null; // { kind, item, index } for Undo
 let toastTimer;
@@ -252,7 +253,9 @@ function handle(msg) {
   }
   const stickState = `${state.task}|${state.focus}|${state.reading}`;
   if (sidebarStick && stickState !== lastStickState) {
+    const taskChanged = lastStickTask !== state.task;
     lastStickState = stickState;
+    lastStickTask = state.task;
     const message = state.reading === "confused"
       ? "A passage may need a second look."
       : state.focus === "drift"
@@ -263,7 +266,21 @@ function handle(msg) {
             ? `Keeping ${state.task} together.`
             : "Your tabs and saved work, together.";
     $("#stick-message").textContent = message;
-    sidebarStick.say(message, 2600).catch((error) => console.warn("[stick/sidebar] companion message failed:", error));
+    const action = state.reading === "confused"
+      ? { action: "shrug", text: "Want a hand with this passage?" }
+      : state.focus === "drift"
+        ? { action: "tap", text: `Back to ${state.task || "your task"}?` }
+        : state.focus === "stuck"
+          ? { action: "shrug", text: "Let's try a different approach." }
+          : state.focus === "flow"
+            ? { action: "read" }
+            : taskChanged && state.task
+              ? { action: "wave", text: `On to ${state.task}!` }
+              : { action: "idle" };
+    sidebarStick.stop();
+    sidebarStick.perform(action).catch((error) => {
+      console.warn("[stick/sidebar] companion animation failed:", error);
+    });
   }
 }
 
@@ -316,7 +333,7 @@ try {
   sidebarStick = globalThis.Stick?.create({
     container: stage,
     targetHeight: 220,
-    home: { x: 48, y: 90 },
+    home: { x: 66, y: 154 },
     homeMargin: 0,
     entrance: false,
     quirks: false,

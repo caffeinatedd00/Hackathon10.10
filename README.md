@@ -91,7 +91,7 @@ These remain follow-up work; they are not implied by the current demo.
 - `ai.js` provides the shared language API and cache; it defaults to mock/fallback responses unless configured.
 - `reading.js` tracks visible text and re-reads. `glue.js` calls the AI and Stick actor for rewrite, note, summary, and briefing flows.
 - `Stickman/stick-module/stick-module/` contains the calibrated sprite actor, its configuration, bridge, and standalone playground.
-- `sidebar.js` displays current tab groups plus saved summaries and notes.
+- `sidebar.js` displays current tab groups plus saved summaries and notes, and drives a larger sidebar Stick: he greets task changes, reads during focus, taps on drift, and asks before offering reading help. The content-page Stick remains the one that walks to and acts on real page text.
 
 The Gemini key is optional for local/demo operation. Keep `key.env` local and untracked; do not paste its value into source or messages.
 

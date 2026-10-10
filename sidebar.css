@@ -24,8 +24,8 @@ h1 { margin: 0; font-size: 15px; letter-spacing: .16em; }
 .chip[data-focus="drift"] { background: color-mix(in srgb, var(--orange) 18%, transparent); color: var(--orange); }
 .chip[data-focus="stuck"] { background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); }
 
-.companion-card { display: flex; min-height: 112px; align-items: center; gap: 10px; margin: 0 12px 11px; padding: 7px 10px; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: linear-gradient(135deg, var(--surface), var(--accent-soft)); }
-#sidebar-stick-stage { position: relative; width: 84px; height: 100px; flex: none; overflow: hidden; border-radius: 8px; background: color-mix(in srgb, var(--accent-soft) 60%, transparent); }
+.companion-card { display: flex; min-height: 196px; align-items: center; gap: 10px; margin: 0 12px 11px; padding: 7px 10px; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: linear-gradient(135deg, var(--surface), var(--accent-soft)); }
+#sidebar-stick-stage { position: relative; width: 132px; height: 180px; flex: none; overflow: visible; border-radius: 8px; background: color-mix(in srgb, var(--accent-soft) 60%, transparent); }
 .companion-copy { display: grid; gap: 5px; min-width: 0; }
 .companion-copy strong { font-size: 11px; line-height: 1.35; }
 .companion-copy span { color: var(--muted); font-size: 10px; line-height: 1.45; }
