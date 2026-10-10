@@ -3,9 +3,9 @@
   "name": "STICK",
   "version": "0.1",
   "browser_specific_settings": { "gecko": { "id": "stick@hackathon.local" } },
-  "permissions": ["tabs", "storage"],
+  "permissions": ["tabs", "storage", "idle"],
   "host_permissions": ["https://generativelanguage.googleapis.com/*"],
-  "background": { "scripts": ["config.js", "ai.js", "inbox.js"] },
+  "background": { "scripts": ["ai.js", "inbox.js", "engine.js"] },
   "sidebar_action": {
     "default_title": "STICK",
     "default_panel": "sidebar.html",
@@ -17,8 +17,24 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["ai-client.js", "content.js", "reading.js", "glue.js"],
+      "js": [
+        "Stickman/stick-module/stick-module/stick.config.js",
+        "Stickman/stick-module/stick-module/stick.js",
+        "Stickman/stick-module/stick-module/bridge.js",
+        "ai-client.js",
+        "reading.js",
+        "glue.js"
+      ],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "Stickman/stick-module/stick-module/assets/*.png",
+        "Stickman/stick-module/stick-module/assets-placeholder/*.png"
+      ],
+      "matches": ["<all_urls>"]
     }
   ]
 }

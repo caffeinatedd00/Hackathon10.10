@@ -19,9 +19,11 @@ window.STICK_CONFIG = {
   // Where the PNGs live. In the extension this becomes a moz-extension:// URL (the folder must be listed
   // in manifest.json -> web_accessible_resources, see README).
   assetBase: (typeof browser !== 'undefined' && browser.runtime && browser.runtime.getURL)
-    ? browser.runtime.getURL('stick-module/assets/')
+    ? browser.runtime.getURL('Stickman/stick-module/stick-module/assets/')
     : 'assets/',
-  fallbackBase: 'assets-placeholder/',
+  fallbackBase: (typeof browser !== 'undefined' && browser.runtime && browser.runtime.getURL)
+    ? browser.runtime.getURL('Stickman/stick-module/stick-module/assets-placeholder/')
+    : 'assets-placeholder/',
 
   facesRight: true,        // set false if your sprites face LEFT in the PNGs
   scale: 0,                // 0 = automatic integer scale from targetHeight; or set 1, 2, 3 ...

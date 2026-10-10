@@ -14,6 +14,9 @@
   'use strict';
   var stick = global.stick;
   if (!stick) { console.warn('[stick-bridge] load stick.js first'); return; }
+  stick.perform({ action: 'idle' }).catch(function (e) {
+    console.warn('[stick-bridge] initial idle failed:', e.message);
+  });
 
   var cfg = {
     flow:  { action: 'read' },                                   // sit down while you're in flow

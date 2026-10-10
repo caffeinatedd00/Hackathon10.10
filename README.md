@@ -26,8 +26,8 @@ STICK is a Firefox extension that quietly watches **how** you browse, not just *
 
 | State | What it means | Signals used |
 |---|---|---|
-| 🗂️ **Task** | What you are working on | Page embeddings, tab switching, which tab opened from which |
-| 🎧 **Focus** | Flow, stuck, or drifting | Tab-switch rate, time on distraction sites, typing rhythm |
+| 🗂️ **Task** | What you are working on | Local overlap of tab-title and hostname terms |
+| 🎧 **Focus** | Flow, stuck, or drifting | Tab-switch rate and time on the active tab |
 | 📖 **Comprehension** | Reading smoothly or confused | Scroll-backs, re-reading, dwell time per paragraph |
 
 Every feature is just an **action the engine takes** when a state changes. That is what makes it one product and not a pile of features.
@@ -37,15 +37,27 @@ Every feature is just an **action the engine takes** when a state changes. That 
 ## ✅ Scope
 
 ### Must-haves (the demo is built on these)
-- [ ] Stick appears as an overlay and reacts to engine state
-- [ ] Tabs regroup by task, get named automatically, and unused ones auto-sleep
-- [ ] Confusion detection that simplifies the paragraph in place
-- [ ] Welcome-back briefing after a break
+- [x] Calibrated sprite Stick is injected as an overlay and reacts to state/action messages
+- [x] Tabs are grouped in the sidebar using local title/hostname similarity and named via `nameGroup()`
+- [x] Re-reading/slow-dwell signals offer a reversible paragraph simplification; re-read passages become notes
+- [x] Returning after an idle break triggers a welcome-back briefing
+- [ ] Automatic tab discard/sleep is not enabled yet; do not assume groups are automatically slept
 
-### Should-haves (only once the above work)
-- [ ] Flow and drift nudges (simple version: tab-switch rate plus a distraction-site list)
-- [ ] Page summary when you are skimming a long page
-- [ ] Auto-notes from passages you re-read
+### Additional implemented features
+- [x] The reader can save a summary after detecting a skim pattern
+- [x] Summaries and re-read notes persist in the sidebar and can be edited/copied/deleted
+- [x] The sidebar keeps an activity history for regrouping, reading help, proofreading and saved work
+- [x] Focus state is inferred from rapid tab switching and sustained active-tab time
+- [x] The AI typo checker can offer a reviewable batch of spelling corrections in a `contenteditable` editor
+
+### Not integrated yet
+
+- Automatic tab discard/sleep and group-based tab hiding
+- Embedding-based task clustering, distraction-site shielding, and tab-count mood
+- Auto-glossary, copy capture, resume position, deadline radar, and session recap
+- Textarea/Google Docs typo correction (canvas editors do not expose editable text ranges)
+
+These remain follow-up work; they are not implied by the current demo.
 
 ### Stretch (probably cut)
 - [ ] End-of-day stick-figure comic strip of your session
@@ -70,7 +82,32 @@ Every feature is just an **action the engine takes** when a state changes. That 
 
 **Limit to 6 animations:** idle, walk, carry, read, tap, magnify (plus wave if time allows).
 
-**Art route:** SVG/CSS stickman (head, body line, four limbs rotated by CSS keyframes). About an hour for a walk cycle and it scales cleanly. Pixel art (32x32 in Piskel, sprite strips played with CSS `steps()`) looks cooler but costs more time per animation.
+**Art route:** calibrated pixel-art sprite strips, rendered in the isolated Stick actor module. The extension loads the same `stick.perform()` API used by the playground.
+
+### Current integration map
+
+- `engine.js` groups open web tabs locally, broadcasts task/focus state, and sends the welcome-back action.
+- `inbox.js` keeps local history of tab regrouping, reading support, proofreading and saved notes/summaries; the sidebar is the history hub.
+- `ai.js` provides the shared language API and cache; it defaults to mock/fallback responses unless configured.
+- `reading.js` tracks visible text and re-reads. `glue.js` calls the AI and Stick actor for rewrite, note, summary, and briefing flows.
+- `Stickman/stick-module/stick-module/` contains the calibrated sprite actor, its configuration, bridge, and standalone playground.
+- `sidebar.js` displays current tab groups plus saved summaries and notes.
+
+The Gemini key is optional for local/demo operation. Keep `key.env` local and untracked; do not paste its value into source or messages.
+
+## 🖥️ Presentation mockup
+
+Open `mockup.html` directly for a standalone, repeatable video walkthrough. Select **Play showcase** and record the sequence: task workspaces, a user-approved reading simplification, a source-linked note, and one-pass proofreading. The calibrated sprite module powers Stick’s movements and speech bubbles.
+
+The example browser includes recognizable PubMed, Google Scholar and QMplus pages with clearly marked sample content. Their links open the real services in a new tab, but the mock pages do not scrape or alter those sites. The Firefox extension itself runs on supported real web pages, subject to browser permissions and editor limitations.
+
+The demonstration is intentionally candid: observable rereading/dwell signals are only hints that a reader *may* want help, not proof of confusion; the extension asks before simplifying. Task workspaces group tabs in the sidebar without moving or closing them, focus mode does not block sites, and spelling suggestions are reviewed before one batch is applied. The original passage/draft can be restored or undone. The contenteditable example is simulated; canvas-based editors such as Google Docs remain unsupported. The mockup does not invent deadlines or connect to live AI.
+
+### Recording the Firefox demo
+
+1. In Firefox, open `about:debugging#/runtime/this-firefox` and load this project's `manifest.json` as a temporary add-on.
+2. Open the STICK sidebar, then visit the real PubMed, Google Scholar and QMplus pages you plan to show. The sidebar groups available tabs; the content script/Stick can only run where Firefox grants the extension access.
+3. Use the local `mockup.html` **Play showcase** for the repeatable, timed story and its sample draft. Keep the **SIMULATED PAGE** notice visible when recording that part; click **Open real site** to show the corresponding live website separately.
 
 ---
 

@@ -2,8 +2,10 @@ const api = typeof browser !== "undefined" ? browser : chrome;
 const MOCK = false; // set to false once the background script sends real messages
 
 const $ = (s) => document.querySelector(s);
-const state = { task: null, focus: "idle", reading: "ok", groups: [], summaries: [], notes: [] };
+const state = { task: null, focus: "idle", reading: "ok", groups: [], activity: [], summaries: [], notes: [] };
 const collapsed = new Set();
+let sidebarStick;
+let lastStickState = "";
 let editing = null;     // { id, draft } while a note is being edited
 let lastDeleted = null; // { kind, item, index } for Undo
 let toastTimer;
@@ -43,13 +45,20 @@ let saveTimer;
 function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    api.storage.local.set({ stickSidebar: { summaries: state.summaries, notes: state.notes } }).catch(() => {});
+    api.storage.local.set({
+      stickSidebar: {
+        activity: state.activity,
+        summaries: state.summaries,
+        notes: state.notes,
+      },
+    }).catch((error) => console.error("[stick/sidebar] save failed:", error));
   }, 200);
 }
 async function load() {
   try {
     const { stickSidebar } = await api.storage.local.get("stickSidebar");
     if (!stickSidebar) return false;
+    state.activity = stickSidebar.activity || [];
     state.summaries = stickSidebar.summaries || [];
     state.notes = stickSidebar.notes || [];
     return true;
@@ -134,6 +143,27 @@ function renderGroups() {
   $("#count-groups").textContent = state.groups.length;
 }
 
+function renderActivity() {
+  const box = $("#view-activity");
+  box.replaceChildren();
+  if (!state.activity.length) {
+    box.append(empty("Nothing in your history yet", "Tab changes, reading help and saved work will appear here."));
+  }
+  state.activity.forEach((item) => {
+    const source = item.url
+      ? h("a", { class: "activity-source", href: item.url, target: "_blank", rel: "noopener noreferrer" }, host(item.url))
+      : null;
+    box.append(h("article", { class: "activity-card" },
+      h("span", { class: `activity-mark ${item.kind || ""}` }, item.kind === "summary" ? "S" : item.kind === "note" ? "N" : "•"),
+      h("div", { class: "activity-copy" },
+        h("strong", {}, item.title || "Study update"),
+        h("p", {}, item.text || ""),
+        source,
+        h("time", {}, ago(item.ts || Date.now())))));
+  });
+  $("#count-activity").textContent = state.activity.length;
+}
+
 function renderSummaries() {
   const box = $("#view-summaries");
   box.replaceChildren();
@@ -201,12 +231,39 @@ function renderNotes() {
 /* ---------- incoming messages (the contract with the backend) ---------- */
 function handle(msg) {
   if (!msg) return;
-  if (msg.type === "groups") { state.groups = msg.groups; renderGroups(); }
+  if (msg.type === "snapshot") {
+    Object.assign(state, { task: msg.task ?? null, focus: msg.focus ?? "idle", reading: msg.reading ?? "ok" });
+    state.groups = msg.groups || [];
+    renderHeader();
+    renderGroups();
+  }
+  else if (msg.type === "groups") { state.groups = msg.groups; renderGroups(); }
+  else if (msg.type === "activity") {
+    state.activity.unshift({ id: uid(), ...msg.item });
+    state.activity = state.activity.slice(0, 100);
+    renderActivity();
+    save();
+  }
   else if (msg.type === "summary") { state.summaries.unshift({ id: uid(), ...msg.item }); renderSummaries(); save(); }
   else if (msg.type === "note") { state.notes.unshift({ id: uid(), ...msg.item }); renderNotes(); save(); }
   else if (msg.task !== undefined || msg.focus || msg.reading) {
     Object.assign(state, { task: msg.task ?? state.task, focus: msg.focus ?? state.focus, reading: msg.reading ?? state.reading });
     renderHeader();
+  }
+  const stickState = `${state.task}|${state.focus}|${state.reading}`;
+  if (sidebarStick && stickState !== lastStickState) {
+    lastStickState = stickState;
+    const message = state.reading === "confused"
+      ? "A passage may need a second look."
+      : state.focus === "drift"
+        ? "Lots of tab switching? Your tasks are still here."
+        : state.focus === "flow"
+          ? "You seem settled in. I'll stay out of the way."
+          : state.task
+            ? `Keeping ${state.task} together.`
+            : "Your tabs and saved work, together.";
+    $("#stick-message").textContent = message;
+    sidebarStick.say(message, 2600).catch((error) => console.warn("[stick/sidebar] companion message failed:", error));
   }
 }
 
@@ -223,12 +280,14 @@ document.querySelectorAll(".seg button").forEach((b) =>
 (async function init() {
   const hadSaved = await load();
   api.runtime.onMessage.addListener(handle);
-    api.storage.onChanged.addListener((changes, area) => {
+  api.storage.onChanged.addListener((changes, area) => {
     const v = area === "local" && changes.stickSidebar?.newValue;
     if (!v) return;
-    if (JSON.stringify([v.summaries, v.notes]) === JSON.stringify([state.summaries, state.notes])) return;
+    if (JSON.stringify([v.activity, v.summaries, v.notes]) === JSON.stringify([state.activity, state.summaries, state.notes])) return;
+    state.activity = v.activity || [];
     state.summaries = v.summaries || [];
     state.notes = v.notes || [];
+    renderActivity();
     renderSummaries();
     renderNotes();
   });
@@ -246,5 +305,25 @@ document.querySelectorAll(".seg button").forEach((b) =>
     if (!hadSaved) { $("#dev-summary").click(); $("#dev-note").click(); } // seed demo items only on the first run
   }
 
-  renderHeader(); renderGroups(); renderSummaries(); renderNotes();
+  renderHeader(); renderGroups(); renderActivity(); renderSummaries(); renderNotes();
+  api.runtime.sendMessage({ type: "engine:getSnapshot" })
+    .then((snapshot) => handle({ type: "snapshot", ...snapshot }))
+    .catch((error) => console.warn("[stick/sidebar] engine snapshot unavailable:", error));
 })();
+
+try {
+  const stage = document.querySelector("#sidebar-stick-stage");
+  sidebarStick = globalThis.Stick?.create({
+    container: stage,
+    targetHeight: 220,
+    home: { x: 48, y: 90 },
+    homeMargin: 0,
+    entrance: false,
+    quirks: false,
+  });
+  sidebarStick?.perform({ action: "idle" }).catch((error) => {
+    console.warn("[stick/sidebar] companion animation failed:", error);
+  });
+} catch (error) {
+  console.error("[stick/sidebar] companion could not start:", error);
+}

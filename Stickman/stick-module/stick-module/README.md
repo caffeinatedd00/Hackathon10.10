@@ -94,22 +94,28 @@ See `CONTRACT-actor-api.md` for the full table. Also: `stick.stop()`, `stick.bus
 "content_scripts": [{
   "matches": ["<all_urls>"],
   "js": [
-    "stick-module/stick.config.js",
-    "stick-module/stick.js",
-    "stick-module/bridge.js",
-    "content/reading/reading.js"
+    "Stickman/stick-module/stick-module/stick.config.js",
+    "Stickman/stick-module/stick-module/stick.js",
+    "Stickman/stick-module/stick-module/bridge.js",
+    "ai-client.js",
+    "reading.js",
+    "glue.js"
   ],
   "run_at": "document_idle"
 }],
 "web_accessible_resources": [{
-  "resources": ["stick-module/assets/*"],
+  "resources": [
+    "Stickman/stick-module/stick-module/assets/*.png",
+    "Stickman/stick-module/stick-module/assets-placeholder/*.png"
+  ],
   "matches": ["<all_urls>"]
 }]
 ```
 
 * Scripts in the same `content_scripts` entry share one world, so `reading.js` can simply call `stick.perform(...)` with real Elements and Ranges. List `stick.js` **before** it.
 * Without `web_accessible_resources` the sprites will not load on web pages (you will see blank space where Stick should be).
-* `assetBase` in `stick.config.js` automatically becomes the `moz-extension://` URL inside the extension.
+* `assetBase` and `fallbackBase` in `stick.config.js` resolve to the extension's sprite and placeholder directories.
+* The project manifest already loads the integrated actor and bridge; do not also load the older `content.js` SVG overlay.
 
 **Dev B examples**
 ```js

@@ -351,7 +351,7 @@
       else parent = document.documentElement;
 
       host = document.createElement('stick-overlay');
-      host.style.cssText = 'all:initial;position:' + (cfg.container ? 'absolute' : 'fixed') + ';left:0;top:0;width:0;height:0;z-index:' + cfg.zIndex + ';pointer-events:none;';
+      host.style.cssText = 'all:initial;position:' + (cfg.container ? 'absolute' : 'fixed') + ';left:0;top:0;width:' + (cfg.container ? '100%;height:100%;' : '0;height:0;') + 'z-index:' + cfg.zIndex + ';pointer-events:none;';
       shadow = host.attachShadow({ mode: 'open' });
       try { var sheet = new CSSStyleSheet(); sheet.replaceSync(CSS); shadow.adoptedStyleSheets = [sheet]; }   // constructed sheets are not blocked by page CSP
       catch (e) { var s = document.createElement('style'); s.textContent = CSS; shadow.appendChild(s); }

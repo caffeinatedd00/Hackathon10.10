@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f5f2">
+  <title>STICK — Interactive Concept</title>
+  <link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="#" aria-label="STICK concept home">
+      <span class="brand-mark" aria-hidden="true">s</span>
+      <span>STICK<small>YOUR STUDY COMPANION</small></span>
+    </a>
+    <p class="masthead-note">A calmer way through browser overload.</p>
+    <div class="masthead-right">
+      <span class="privacy-pill"><span></span> Local-first by design</span>
+      <span class="prototype-pill">INTERACTIVE CONCEPT</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="companion" aria-label="STICK companion panel">
+      <section class="stick-card">
+        <div class="stick-card-top">
+          <div>
+            <p class="eyebrow">YOUR COMPANION</p>
+            <h1>Stick is here.</h1>
+          </div>
+          <span class="status-dot" aria-label="Ready"></span>
+        </div>
+        <div class="stick-stage" id="stick-stage" aria-label="Animated Stick character"></div>
+        <p class="stick-caption" id="stick-caption" aria-live="polite">Quietly keeping your study in order.</p>
+      </section>
+
+      <section class="workspace-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">YOUR WORKSPACES</p>
+            <h2>Keep related tabs together</h2>
+          </div>
+          <span class="count-pill">2</span>
+        </div>
+        <button class="workspace-card active" data-workspace="research" aria-pressed="true">
+          <span class="workspace-icon research-icon" aria-hidden="true">R</span>
+          <span class="workspace-copy">
+            <strong>Memory &amp; learning</strong>
+            <small>PubMed · Google Scholar</small>
+          </span>
+          <span class="workspace-count">3</span>
+        </button>
+        <button class="workspace-card" data-workspace="coursework" aria-pressed="false">
+          <span class="workspace-icon course-icon" aria-hidden="true">C</span>
+          <span class="workspace-copy">
+            <strong>Coursework</strong>
+            <small>QMplus · lecture notes</small>
+          </span>
+          <span class="workspace-count">2</span>
+        </button>
+        <p class="workspace-hint">A tidy view of related tabs — your tabs stay open.</p>
+      </section>
+
+      <section class="activity-preview">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">RECENT ACTIVITY</p>
+            <h2>Your study history</h2>
+          </div>
+          <span class="count-pill" id="activity-count">0</span>
+        </div>
+        <ol class="activity-list" id="activity-list">
+          <li class="activity-empty">Stick’s actions and saved work will show up here.</li>
+        </ol>
+      </section>
+
+      <section class="note-preview">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">YOUR NOTES</p>
+            <h2>Keep the useful bits</h2>
+          </div>
+          <span class="count-pill" id="note-count">0</span>
+        </div>
+        <div class="note-list" id="note-list">
+          <p class="empty-notes">Save a passage to keep it with its source.</p>
+        </div>
+      </section>
+
+      <section class="privacy-card">
+        <span class="privacy-icon" aria-hidden="true">◈</span>
+        <div>
+          <strong>You stay in control</strong>
+          <p>Ask before a passage is changed. No keystroke logging or site blocking.</p>
+        </div>
+      </section>
+    </aside>
+
+    <section class="demo" aria-label="Interactive browser mockup">
+      <div class="intro-row">
+        <div>
+          <p class="eyebrow">SEE IT IN CONTEXT</p>
+          <h2>One study day. Less tab chaos.</h2>
+        </div>
+        <div class="intro-actions">
+          <p class="intro-copy">Try the controls in this simulated browser. No websites are contacted.</p>
+          <button id="showcase-button" class="action-button primary"><span aria-hidden="true">▶</span> Play showcase</button>
+          <button id="stop-showcase" class="action-button" hidden>Stop</button>
+        </div>
+      </div>
+
+      <div class="browser-window">
+        <div class="browser-top">
+          <div class="window-controls" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="browser-tabs" role="tablist" aria-label="Example websites">
+            <button class="browser-tab active" data-site="pubmed" role="tab" aria-selected="true">
+              <span class="site-favicon pubmed-favicon">P</span> PubMed
+            </button>
+            <button class="browser-tab" data-site="scholar" role="tab" aria-selected="false">
+              <span class="site-favicon scholar-favicon">G</span> Scholar
+            </button>
+            <button class="browser-tab" data-site="qmplus" role="tab" aria-selected="false">
+              <span class="site-favicon qm-favicon">Q</span> QMplus
+            </button>
+            <button class="browser-tab" data-site="draft" role="tab" aria-selected="false">
+              <span class="site-favicon draft-favicon">D</span> Draft
+            </button>
+          </div>
+          <span class="browser-add" aria-hidden="true">+</span>
+        </div>
+
+        <div class="address-row">
+          <span class="address-lock" aria-hidden="true">⌑</span>
+          <span class="address-text" id="address-text">pubmed.ncbi.nlm.nih.gov</span>
+          <span class="demo-address-tag">SIMULATED PAGE</span>
+          <a class="open-site" id="open-site" href="https://pubmed.ncbi.nlm.nih.gov/" target="_blank" rel="noopener noreferrer">
+            Open real site <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+
+        <div class="mock-notice">
+          <span aria-hidden="true">i</span>
+          <span>Concept preview: site names are real; the page text below is example content.</span>
+        </div>
+
+        <div class="page-area" id="page-area" aria-live="polite"></div>
+      </div>
+
+      <div class="steps-row" aria-label="How the demo works">
+        <div class="step"><span>01</span><div><strong>Choose a workspace</strong><small>Move between real study contexts.</small></div></div>
+        <div class="step"><span>02</span><div><strong>Ask for a clearer read</strong><small>Nothing is rewritten without a click.</small></div></div>
+        <div class="step"><span>03</span><div><strong>Keep a sourced note</strong><small>Return to the useful passage later.</small></div></div>
+      </div>
+      <p class="showcase-caption" id="showcase-caption" aria-live="polite">Showcase runs a short, repeatable story for recording. Stop or replay it anytime.</p>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="Stickman/stick-module/stick-module/stick.config.js"></script>
+  <script src="Stickman/stick-module/stick-module/stick.js"></script>
+  <script src="mockup.js"></script>
+</body>
+</html>
